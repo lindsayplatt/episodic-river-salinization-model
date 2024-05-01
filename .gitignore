@@ -1,0 +1,33 @@
+
+##### TYPICAL R GITIGNORE ITEMS #####
+
+# History files
+.Rhistory
+.Rapp.history
+
+# Session Data files
+.RData
+
+# User-specific files
+.Ruserdata
+
+# RStudio files
+.Rproj.user/
+
+# R Environment Variables
+.Renviron
+
+##### CURRENT PIPELINE ITEMS TO GITIGNORE #####
+
+# Ignore build artifacts
+_targets/*
+*/tmp/*
+*/out/*
+1_Download/out_nwis/*
+1_Download/out_nhdplus/*
+# But allow folder structure to be commited
+#   with a placeholder file
+!*/tmp/.placeholder
+!*/out/.placeholder
+!1_Download/out_nwis/.placeholder
+!1_Download/out_nhdplus/.placeholder
