@@ -33,7 +33,8 @@ p6_targets <- list(
   tar_target(p6b_rf_model_hypertuned, apply_randomforest(p6b_site_attr_rf, p6b_hypertuned_params$mtry, p6b_hypertuned_params$ntree)),
   
   # Perform feature selection by only choosing the top 50% important predictors
-  tar_target(p6b_site_attr_rf_optimal, optimize_attrs(p6b_site_attr_rf, p6b_rf_model_hypertuned, 
+  tar_target(p6b_site_attr_rf_optimal, optimize_attrs(site_attr_data = p6b_site_attr_rf,
+                                                      rf_model = p6b_rf_model_hypertuned, 
                                                       n_important = p6_attr_cutoff)),
   
   # Now with the new site attributes, re-tune the model and identify the optimal `mtry` and `ntree` with the new feature set

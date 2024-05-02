@@ -149,10 +149,15 @@ optimize_attrs <- function(site_attr_data, rf_model, n_important = 10) {
     arrange(desc(importance)) 
   
   # Identify most important attributes
+  # Remove either upstream or local attribute depending on order of imporance
   most_important_attrs <- attr_importance %>% 
     head(n_important) %>% 
+    mutate(col = str_remove(attribute, "_upstream")) %>% 
+    group_by(col) %>% 
+    summarise(attribute = first(attribute), importance = first(importance)) %>% 
+    arrange(desc(importance)) %>% 
     pull(attribute)
-    
+  
   # Trim the attribute data down to only that set of unique attributes
   site_attr_data_trim <- site_attr_data %>% 
     dplyr::select(site_category_fact, all_of(most_important_attrs))
