@@ -75,6 +75,41 @@ calculate_catchment_areas <- function(polys_sf, comid_upstream_tbl, comid_site_x
     select(site_no, attr_areaSqKm, attr_areaCumulativeSqKm, attr_areaRatio, numNACatchments)
 }
 
+#' @title Get area of each catchment and total upstream area, keep all upstream comids
+#' @description Using the column of polygon area per catchment returned by 
+#' NHD+ and saved as `areasqkm`, this function calculates the area per
+#' individual catchment and the total cumulative area for catchments upstream
+#' of the featured COMID (including that COMIDs area). This is used downstream
+#' as an attribute but also to calculate road salt application per sq km.
+#' 
+#' @param polys_sf a spatial data frame with polygons. Needs to be an `sf` 
+#' class. Should have at least the columns `nhd_comid` and `areasqkm`.
+#' @param comid_upstream_tbl a tibble with the columns `nhd_comid` and `nhd_comid_upstream`
+#' mapping all upstream comids to each COMID with an NWIS site. It should match
+#' the output of `identify_upstream_comids()`.
+#' @param comid_site_xwalk a tibble with at least the columns `site_no` and 
+#' `nhd_comid`. Note that not all sites are mapped to a COMID and may be NA.
+#' 
+#' @return tibble with four columns `site_no`, `areaSqKm`,
+#'  `total_area_sqkm`, `nhd_comid`, and `nhd_comid_upstream`.
+#' 
+calculate_Upstream_areas <- function(polys_sf, comid_upstream_tbl, comid_site_xwalk) {
+  # Using area that is given already - I checked and they are very similar 
+  # to calculating the area using `st_area()`.
+  catchment_area_tbl <- polys_sf %>% 
+    st_drop_geometry() %>% 
+    select(nhd_comid_upstream = nhd_comid, area_sqkm = areasqkm)
+  
+  comid_upstream_tbl %>% 
+    left_join(catchment_area_tbl, by = 'nhd_comid_upstream') %>% 
+    # Map these attributes from NHD COMIDs to NWIS sites
+    right_join(comid_site_xwalk, by = 'nhd_comid') %>%
+    group_by(nhd_comid) %>% 
+    mutate(total_area_sqkm = sum(area_sqkm)) %>% 
+    ungroup() %>% 
+    select(site_no, nhd_comid, nhd_comid_upstream, area_sqkm, total_area_sqkm)
+}
+
 #' @title Aggregate road salt application values per polygon
 #' @description Extract and sum cell values from the road salt raster file
 #' to get a single road salt application rate value for each polygon.
@@ -235,7 +270,8 @@ prepare_sb_gw_attrs <- function(depth2wt_csv, transmissivity_csv, comid_site_xwa
   
   dtw <- read_csv(depth2wt_csv, show_col_types = FALSE) %>% 
     mutate(nhd_comid = comid) %>% 
-    select(nhd_comid, attr_depthToWT = dtw250)
+    select(nhd_comid, attr_depthToWT = dtw250) %>% 
+    filter(!is.na(attr_depthToWT))
   
   trnmsv <- read_csv(transmissivity_csv, show_col_types = FALSE) %>% 
     mutate(nhd_comid = comid) %>% 

@@ -1,3 +1,52 @@
+#' @title Check duplicate timestamps and year/months
+#' @description Identify years that have at least 3 years of winter and summer 
+#' 
+#' @param in_file a feather file with the time series data and at least the 
+#' columns `site_no`, `dateTime`, and `[PARAM]`
+#' @param param_colname a character string indicating the name used in the columns 
+#' for the data values. In this workflow, this is likely `SpecCond`.
+#' 
+#' @return tibble with only sites that qualify
+#' 
+filter_winter <- function(in_file, param_colname) {
+  
+  # Map over each site individually (not a super computationally expensive step,
+  # so mapping within the function rather than at the pipeline level)
+  read_feather(in_file) %>% 
+    split(.$site_no) %>% 
+    map(~{
+      
+      # Start by creating a data frame with all possible days for each site
+      ts_data_all_days <- .x %>% 
+        group_by(site_no, dateTime) %>% 
+        summarise(new = mean(get(param_colname), na.rm = T)) %>%
+        rename(!!as.name(param_colname) := new) %>% 
+        ungroup() %>% 
+        filter(dateTime > as.Date('2000-01-01'))
+      
+      winter = ts_data_all_days %>% 
+        mutate(year = year(dateTime), month = month(dateTime)) %>% 
+        filter(month %in% c(12,1,2,3)) %>% 
+        group_by(year) %>% 
+        summarise(n = n()) %>% 
+        filter(n > 60)
+      
+      summer = ts_data_all_days %>% 
+        mutate(year = year(dateTime), month = month(dateTime)) %>% 
+        filter(month %in% c(4:11)) %>% 
+        group_by(year) %>% 
+        summarise(n = n()) %>% 
+        filter(n > 60)
+      
+      if (nrow(winter) >=3 & nrow(summer) >= 3){
+        ts_data_all_days = ts_data_all_days
+      } else {
+        ts_data_all_days = NULL
+      }
+    }) %>% 
+    bind_rows()
+  
+}
 
 #' @title Find sites that meet minimum data quantity-temporal range criteria
 #' @description Apply a minimum number of years + a minimum date requirement to
@@ -16,7 +65,7 @@
 #' 
 #' @return a vector of NWIS site character strings whose `ts_data` met requirements
 #' 
-identify_temporal_qualifying_sites <- function(ts_data, min_years = 5, min_recent_date = as.Date('2007-01-01')) {
+identify_temporal_qualifying_sites <- function(ts_data, min_years = 3, min_recent_date = as.Date('2007-01-01')) {
   
   ts_data %>% 
     group_by(site_no) %>% 
