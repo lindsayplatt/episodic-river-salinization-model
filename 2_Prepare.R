@@ -35,7 +35,7 @@ p2_targets <- list(
   
   # Then this SC data is filtered to only qualifying sites and data in `3_Filter`
   
-  ##### STATIC ATTRIBTUES PREP #####
+  ##### STATIC ATTRIBUTES PREP #####
   
   # All are prefixed with `p2_attr_`
   
@@ -90,6 +90,11 @@ p2_targets <- list(
                                                           comid_upstream_tbl = p3_nhdplus_comids_upstream,
                                                           comid_site_xwalk = p3_nwis_site_nhd_comid_xwalk)),
   
+  # Calculate the total area of each catchment & its upstream catchments, keep all upstream comids
+  tar_target(p2_attr_basinArea_upstream, calculate_Upstream_areas(polys_sf = p2_nhdplus_catchment_sf,
+                                                                     comid_upstream_tbl = p3_nhdplus_comids_upstream,
+                                                                     comid_site_xwalk = p3_nwis_site_nhd_comid_xwalk)),
+  
   # Then, map salt for each NHD COMID catchment polygon to sites and calculate cumulative road salt
   tar_target(p2_attr_roadSalt, map_catchment_roadSalt_to_site(road_salt_comid = p2_nhdplus_catchment_salt, 
                                                               basin_areas = p2_attr_basinArea,
@@ -97,12 +102,17 @@ p2_targets <- list(
                                                               comid_upstream_tbl = p3_nhdplus_comids_upstream)),
   
   # Now keep only the salt attributes of interest in the final model
-  tar_target(p2_attr_roadSalt_forModel, p2_attr_roadSalt %>% select(site_no, attr_roadSaltPerSqKm)),
+  tar_target(p2_attr_roadSalt_forModel, p2_attr_roadSalt %>% select(site_no, attr_roadSaltPerSqKm, attr_roadSaltCumulativePerSqKm)),
   
   ###### ATTR DATA 3: Pivot and link NHD+ attributes to sites ######
   
   tar_target(p2_attr_nhd, prepare_nhd_attributes(p1_nhdplus_attr_vals_tbl,
                                                  p3_nwis_site_nhd_comid_xwalk)),
+ 
+  tar_target(p2_attr_nhd_upstream, prepare_nhd_attributes(p1_nhdplus_attr_vals_tbl_upstream_mean %>% 
+                                                            rename(nhd_attr_val = nhd_attr_val_upstream),
+                                                          p3_nwis_site_nhd_comid_xwalk) %>% 
+               rename_at(vars(-site_no),function(x) paste0(x,"_upstream"))),
   
   # Isolate the agriculture-specific attribute
   tar_target(p2_ag_attr_nhd, p2_attr_nhd %>% select(site_no, attr_pctAgriculture)),
@@ -117,6 +127,7 @@ p2_targets <- list(
   tar_target(p2_attr_all, combine_static_attributes(p2_attr_flow,
                                                     p2_attr_roadSalt_forModel,
                                                     p2_attr_nhd,
+                                                    p2_attr_nhd_upstream,
                                                     p2_attr_depth2wt_trnmsv))
   
 )
