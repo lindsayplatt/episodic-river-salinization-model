@@ -22,7 +22,7 @@ p1_targets <- list(
   tar_target(p1_nwis_end_date, as.Date('2023-12-31')), 
   tar_target(p1_nwis_pcode_sc, '00095'), # NWIS specific conductance code
   tar_target(p1_nwis_pcode_q, '00060'), # NWIS streamflow code
-  tar_target(p1_nwis_min_years, 10), # Minimum number of years required
+  tar_target(p1_nwis_min_years, 3), # Minimum number of years required
   tar_target(p1_nwis_min_end_date, as.Date('2000-01-01')), # Sites must have at least 1 record more recent than this
   
   ###### NWIS DATA 1: Identify sites with continuous SC (by state) ######
@@ -246,6 +246,24 @@ p1_targets <- list(
                                          comids = unique(p1_nwis_site_nhd_comid_ALL_xwalk$nhd_comid)),
              pattern = map(p1_nhdplus_attr_list)),
   
+  # Download catchment attributes data for each COMID upstream
+  tar_target(p1_nhdplus_attr_vals_tbl_upstream, 
+             download_nhdplus_attributes(attributes = unlist(p1_nhdplus_attr_list),
+                                         comids = unique(p1_nhdplus_comids_upstream_ALL$nhd_comid_upstream)),
+             pattern = map(p1_nhdplus_attr_list)),
+  
+  # Create upstream mean (TODO: put this in its own function)
+  tar_target(p1_nhdplus_attr_vals_tbl_upstream_mean, 
+             p2_attr_basinArea_upstream %>% left_join(p1_nhdplus_attr_vals_tbl_upstream %>% 
+                                                      rename(nhd_comid_upstream = nhd_comid), 
+                                                      relationship = 'many-to-many') %>% 
+               mutate(nhd_attr_val = nhd_attr_val*area_sqkm) %>% 
+               group_by(nhd_comid, nhd_attr_id, total_area_sqkm) %>% 
+               summarise(nhd_attr_val_upstream = sum(nhd_attr_val)) %>% 
+               ungroup() %>% 
+               mutate(nhd_attr_val_upstream = nhd_attr_val_upstream/total_area_sqkm)),
+
+  
   # Save attributes with their definitions and commit to the repo
   tar_target(p1_nhdplus_attr_definitions, 
              get_nhdplus_attribute_definitions(p1_nhdplus_attr_vals_tbl)),
@@ -258,13 +276,13 @@ p1_targets <- list(
                                # Create unique vector of COMIDs to download catchments only once
                                tibble(nhd_comid = unique(c(p1_nhdplus_comids, p1_nhdplus_comids_upstream_ALL$nhd_comid_upstream)))),
   
-  # Download NHD+ catchment polygons by groups of COMIDs (should be 500 total branches with 
-  # ~1235 COMIDs each). This takes slightly over two hours to download over 600k COMID catchments
-  tar_target(p1_nhdplus_catchments_gpkg, 
+  # # Download NHD+ catchment polygons by groups of COMIDs (should be 500 total branches with 
+  # # ~1235 COMIDs each). This takes slightly over two hours to download over 600k COMID catchments
+  tar_target(p1_nhdplus_catchments_gpkg,
              download_nhdplus_catchments(out_file = sprintf('1_Download/out_nhdplus/nhdplus_catchment_%s.gpkg',
                                                             unique(p1_nhdplus_comids_grp$tar_group)),
                                          comids = p1_nhdplus_comids_grp$nhd_comid),
-             pattern = map(p1_nhdplus_comids_grp), 
+             pattern = map(p1_nhdplus_comids_grp),
              format = 'file', error = "continue")
-  
+  # tar_target(p1_nhdplus_catchments_gpkg, list.files('1_Download/out_nhdplus/',full.names = T))
 )
