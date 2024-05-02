@@ -19,11 +19,13 @@ apply_randomforest <- function(site_attr_data, mtry = NULL, ntree = NULL, seed =
   if(is.null(mtry)) mtry <- floor(sqrt(ncol(site_attr_data) - 1))
   
   set.seed(seed)
-  randomForest(
+  rfMod = randomForest(
     site_category_fact ~ .,
     data = site_attr_data,
     mtry = mtry, 
     importance = TRUE)
+  
+  return(rfMod)
   
 }
 

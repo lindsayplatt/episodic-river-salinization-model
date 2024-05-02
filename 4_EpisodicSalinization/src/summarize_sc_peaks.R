@@ -55,6 +55,23 @@ summarize_salt_peaks <- function(ts_peak_data, winter_months = c(12,1,2,3),
     mutate(perc_winter_max_higher = n_winter_higher / n_years) %>% 
     select(site_no, perc_winter_max_higher)
   
+  # Calculate of the 10 largest peaks each winter, how many occur in winter ('winterPeaks)
+  # Also calculate the different between the peakSpc and the mean Spc
+  salt_peaks = ts_peak_data %>% 
+    mutate(is_winter = month(dateTime) %in% winter_months) %>% 
+    group_by(site_no, year = year(dateTime)) %>% 
+    mutate(winterSum = sum(is_winter)) %>% 
+    filter(winterSum > 60) %>% # need sufficient winter data (>60 days)
+    arrange(desc(SpecCond)) %>% 
+    slice(1:10) %>% 
+    summarise(winterPeaks = sum(is_winter), peakSpc = mean(SpecCond, na.rm = TRUE)) %>% 
+    left_join(ts_peak_data %>% group_by(site_no, year = year(dateTime)) %>% 
+                summarise(meanSpc = mean(SpecCond, na.rm = TRUE))) %>% 
+    group_by(site_no) %>% 
+    summarise_all(mean) %>% 
+    select(-year)
+  
+  
   salt_sites_info <- ts_peak_data %>% 
     # Create a winter flag - if month in (12,1,2,3)
     mutate(is_winter = month(dateTime) %in% winter_months) %>% 
@@ -86,11 +103,14 @@ summarize_salt_peaks <- function(ts_peak_data, winter_months = c(12,1,2,3),
   salt_sites_info %>% 
     # Join in the data about winter maximums
     left_join(salt_sites_max_info, by = 'site_no') %>% 
+    left_join(salt_peaks, by = 'site_no') %>% 
     mutate(is_salt_site = 
              # More than `min_perc_peaks_winter` percent of global peaks must occur in winter
              peaks_perc_winterYes > min_perc_peaks_winter & 
              # The non-winter and winter mean SpC must be more than `min_perc_diff` percent different
-             sc_perc_diff > min_perc_diff &
+             # sc_perc_diff > min_perc_diff &
+             winterPeaks > 6 &
+             peakSpc >= 200 + meanSpc &
              # Maximum annual SpC should occur in winter more than `` percent of the years
              perc_winter_max_higher > min_perc_winter_higher)
   
