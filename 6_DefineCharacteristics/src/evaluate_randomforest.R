@@ -49,13 +49,17 @@ calculate_attr_importance <- function(rf_model) {
               by = c('attribute', 'site_category')) %>% 
     dplyr::select(attribute, site_category, everything()) %>% 
     mutate(attribute_grp = case_when(
-      attribute %in% c('annualPrecip', 'annualSnow', 'winterAirTemp') ~ 'meteo',
-      attribute %in% c('roadSaltPerSqKm') ~ 'salt',
+      attribute %in% c('annualPrecip', 'annualSnow', 'winterAirTemp',
+                       'annualSnow_upstream') ~ 'meteo',
+      attribute %in% c('roadSaltPerSqKm', 'roadSaltCumulativePerSqKm') ~ 'salt',
       attribute %in% c('baseFlowInd', 'gwRecharge', 'depthToWT', 
+                       'gwRecharge_upstream', 'depthToWT_upstream', 
                        'subsurfaceContact', 'transmissivity') ~ 'gw',
       attribute %in% c('pctAgriculture', 'pctDeveloped', 'pctForested', 
+                       'pctAgriculture_upstream', 'pctDeveloped_upstream', 'pctForested_upstream', 
                        'pctOpenWater', 'pctWetland') ~ 'landcover',
-      attribute %in% c('basinSlope', 'medianFlow') ~ 'basin',
+      attribute %in% c('basinSlope', 'medianFlow', 
+                       'basinSlope_upstream') ~ 'basin',
       .default = NA_character_
     ))
   
@@ -73,18 +77,17 @@ calculate_attr_importance <- function(rf_model) {
 #' 
 #' @returns a ggplot object
 #'
-visualize_attr_importance <- function(rf_model_importance) {
+visualize_attr_importance1 <- function(rf_model_importance) {
   
   data_to_plot <- rf_model_importance %>% filter(site_category == 'Overall mean') %>% 
     # Order the attributes based on importance values *within* each site category
     # Thanks to https://stackoverflow.com/questions/72147790/ggplot-facet-different-y-axis-order-based-on-value!
     mutate(attribute = tidytext::reorder_within(attribute, importance, within = site_category)) 
-  browser()
   
   # Var importance per site category, ordered by attribute importance
   ggplot(data_to_plot, aes(x = importance, y = attribute,
                            color = attribute_grp)) +
-    geom_point(size = 4) +
+    geom_point(size = 3) +
     geom_segment(aes(x = importance - importance_sd,
                      xend = importance + importance_sd,
                      yend = attribute), linewidth=1) +
