@@ -151,10 +151,11 @@ optimize_attrs <- function(site_attr_data, rf_model, n_important = 10) {
     arrange(desc(importance)) 
   
   # Identify most important attributes
-  # Remove either upstream or local attribute depending on order of imporance
+  # Remove either upstream or local attribute depending on order of importance
   most_important_attrs <- attr_importance %>% 
     head(n_important) %>% 
-    mutate(col = str_remove(attribute, "_upstream")) %>% 
+    mutate(col = str_remove(attribute, "_upstream")) %>%
+    mutate(col = if_else(col == 'roadSaltCumulativePerSqKm', 'roadSaltPerSqKm', col)) %>% 
     group_by(col) %>% 
     summarise(attribute = first(attribute), importance = first(importance)) %>% 
     arrange(desc(importance)) %>% 
