@@ -8,15 +8,16 @@
 #' 
 #' @param ... any number of separate tibbles that contain columns of static
 #' attributes and at least the `site_no` column
+#' @param joinby character to join by 
 #' 
 #' @return a complete static attributes table with at least the column
 #' `site_no` and one row per site. All columns are prefixed with `attr_`
 #' and the number of columns will vary based on how many attributes were
 #' combined.
 #' 
-combine_static_attributes <- function(...) {
+combine_static_attributes <- function(joinby = 'site_no', ...) {
     purrr::reduce(
       list(...),
       dplyr::left_join, 
-      by = 'site_no')
+      by = joinby) 
 }
