@@ -222,20 +222,33 @@ prepare_nhd_attributes <- function(nhd_attribute_table, comid_site_xwalk) {
     # Combine some of the land-use categories (in % catchment area)
     mutate(
       # Forested = deciduous forest + evergreen forest + mixed forest
-      attr_pctForested = CAT_NLCD19_41 + CAT_NLCD19_42 + CAT_NLCD19_43,
-      # Wetland = woody wetland + herbaceous wetland
-      attr_pctWetland = CAT_NLCD19_90 + CAT_NLCD19_95,
-      # Agriculture = pasture/hay + cropland
-      attr_pctAgriculture = CAT_NLCD19_81 + CAT_NLCD19_82,
-      # Developed = open (<20% impervious) + low (20-49%) + medium (50-79%) + high (80-100%)
-      attr_pctDeveloped = CAT_NLCD19_21 + CAT_NLCD19_22 + CAT_NLCD19_23 + CAT_NLCD19_24) %>% 
+      attr_pctForested = sum(c_across(contains("19_41") | contains("19_42") | contains("19_43"))),
+      # attr_pctWetland = CAT_NLCD19_90 + CAT_NLCD19_95,
+      attr_pctWetland = sum(c_across(contains("19_90") | contains("19_95"))),
+      # # Agriculture = pasture/hay + cropland
+      attr_pctAgriculture = sum(c_across(contains("19_81") | contains("19_82"))),
+      # # Developed = open (<20% impervious) + low (20-49%) + medium (50-79%) + high (80-100%)
+      attr_pctDeveloped = sum(c_across(contains("19_21") | contains("19_22") | contains("19_23") | contains("19_24")))) %>%
+      
+      # attr_pctForested = NLCD19_41 + CAT_NLCD19_42 + CAT_NLCD19_43,
+      # # Wetland = woody wetland + herbaceous wetland
+      # attr_pctWetland = CAT_NLCD19_90 + CAT_NLCD19_95,
+      # # Agriculture = pasture/hay + cropland
+      # attr_pctAgriculture = CAT_NLCD19_81 + CAT_NLCD19_82,
+      # # Developed = open (<20% impervious) + low (20-49%) + medium (50-79%) + high (80-100%)
+      # attr_pctDeveloped = CAT_NLCD19_21 + CAT_NLCD19_22 + CAT_NLCD19_23 + CAT_NLCD19_24) %>% 
     
     # Calculate snow (in mm) from precip total
-    mutate(attr_annualSnow = CAT_PPT7100_ANN*CAT_PRSNOW/100) %>% 
+    # mutate(attr_annualSnow = CAT_PPT7100_ANN*CAT_PRSNOW/100) %>% 
+  mutate(attr_annualSnow = sum(c_across(contains("PPT7100_ANN") | contains("PRSNOW")))/100) %>% 
     
     # Calculate average winter air temperature from monthly averages
-    mutate(attr_winterAirTemp = mean(c(CAT_TAV7100_DEC, CAT_TAV7100_JAN,
-                                          CAT_TAV7100_FEB, CAT_TAV7100_MAR))) %>% 
+    # mutate(attr_winterAirTemp = mean(c(CAT_TAV7100_DEC, CAT_TAV7100_JAN,
+    #                                       CAT_TAV7100_FEB, CAT_TAV7100_MAR))) %>% 
+    mutate(attr_winterAirTemp = mean(c_across(contains("TAV7100_DEC") | 
+                                                contains("TAV7100_JAN") |
+                                                contains("TAV7100_FEB") |
+                                                contains("TAV7100_MAR")))) %>% 
     
     # Rename the columns whose values are used as-is
     rename(any_of(c(
@@ -244,7 +257,13 @@ prepare_nhd_attributes <- function(nhd_attribute_table, comid_site_xwalk) {
       attr_subsurfaceContact = 'CAT_CONTACT', # days
       attr_gwRecharge = 'CAT_RECHG', # in mm/year
       attr_pctOpenWater = 'CAT_NLCD19_11', # % catchment area
-      attr_basinSlope = 'CAT_BASIN_SLOPE' # % rise
+      attr_basinSlope = 'CAT_BASIN_SLOPE', # % rise
+      attr_annualPrecip = 'TOT_PPT7100_ANN', # in mm
+      attr_baseFlowInd = 'TOT_BFI', # % total flow
+      attr_subsurfaceContact = 'TOT_CONTACT', # days
+      attr_gwRecharge = 'TOT_RECHG', # in mm/year
+      attr_pctOpenWater = 'TOT_NLCD19_11', # % catchment area
+      attr_basinSlope = 'TOT_BASIN_SLOPE' # % rise
     ))) %>% 
     
     # Select only the final attributes, which are those prefixed with `attr_`
@@ -262,11 +281,13 @@ prepare_nhd_attributes <- function(nhd_attribute_table, comid_site_xwalk) {
 #' @param transmissivity_csv a string specifying the filepath to the CSV downloaded from
 #' ScienceBase with the Zell and Sanford 2020 data release for transmissivity.
 #' @param comid_site_xwalk a tibble with the columns `site_no`, `nhd_comid`, `with_retry`
-#' 
+#' @param returnSite binary. TRUE, matches to site, FALSE, returns comid
+
 #' @return tibble with the columns `site_no`, `attr_zellSanfordDepthToWT`, and
 #' `attr_transmissivity.`
 #' 
-prepare_sb_gw_attrs <- function(depth2wt_csv, transmissivity_csv, comid_site_xwalk) {
+prepare_sb_gw_attrs <- function(depth2wt_csv, transmissivity_csv, comid_site_xwalk, 
+                                returnSite = TRUE) {
   
   dtw <- read_csv(depth2wt_csv, show_col_types = FALSE) %>% 
     mutate(nhd_comid = comid) %>% 
@@ -277,8 +298,16 @@ prepare_sb_gw_attrs <- function(depth2wt_csv, transmissivity_csv, comid_site_xwa
     mutate(nhd_comid = comid) %>% 
     select(nhd_comid, attr_transmissivity = trans250)
   
-  comid_site_xwalk %>% 
-    left_join(dtw, by = 'nhd_comid') %>% 
-    left_join(trnmsv, by = 'nhd_comid') %>% 
-    select(site_no, starts_with('attr_'))
+  if (returnSite == TRUE) {
+    comid_site_xwalk %>% 
+      left_join(dtw, by = 'nhd_comid') %>% 
+      left_join(trnmsv, by = 'nhd_comid') %>% 
+      select(site_no, starts_with('attr_')) 
+  } else {
+    comid_site_xwalk %>% 
+      left_join(dtw, by = 'nhd_comid') %>% 
+      left_join(trnmsv, by = 'nhd_comid') %>% 
+      select(nhd_comid, starts_with('attr_')) 
+  }
+  
 }

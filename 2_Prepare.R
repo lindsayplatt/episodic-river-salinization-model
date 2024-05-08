@@ -109,11 +109,11 @@ p2_targets <- list(
   tar_target(p2_attr_nhd, prepare_nhd_attributes(p1_nhdplus_attr_vals_tbl,
                                                  p3_nwis_site_nhd_comid_xwalk)),
  
-  tar_target(p2_attr_nhd_upstream, prepare_nhd_attributes(p1_nhdplus_attr_vals_tbl_upstream_mean %>% 
-                                                            rename(nhd_attr_val = nhd_attr_val_upstream),
-                                                          p3_nwis_site_nhd_comid_xwalk) %>% 
-               rename_at(vars(-site_no),function(x) paste0(x,"_upstream"))),
-  
+  # tar_target(p2_attr_nhd_upstream, prepare_nhd_attributes(p1_nhdplus_attr_vals_tbl_upstream_mean %>% 
+  #                                                           rename(nhd_attr_val = nhd_attr_val_upstream),
+  #                                                         p3_nwis_site_nhd_comid_xwalk) %>% 
+  #              rename_at(vars(-site_no),function(x) paste0(x,"_upstream"))),
+  # 
   # Isolate the agriculture-specific attribute
   tar_target(p2_ag_attr_nhd, p2_attr_nhd %>% select(site_no, attr_pctAgriculture)),
   
@@ -122,12 +122,23 @@ p2_targets <- list(
                                                           p1_sb_transmissivity_csv,
                                                           p3_nwis_site_nhd_comid_xwalk)),
   
+  ####### Get stream order for every comid ##########
+  tar_target(p2_streamorder, get_nhdplus(comid = p1_nhdplus_comids) %>% 
+                              select(nhd_comid = comid, streamorde) %>% 
+                              st_drop_geometry() %>% 
+                              left_join(p3_nwis_site_nhd_comid_xwalk) %>% 
+                              select(site_no, attr_streamorder = streamorde)),
+  
   ###### ATTR DATA 4: Combine all static attributes into one table ######
   
-  tar_target(p2_attr_all, combine_static_attributes(p2_attr_flow,
+  tar_target(p2_attr_all, combine_static_attributes(joinby = 'site_no',
+                                                    # p2_attr_flow,
+                                                    p2_streamorder,
+                                                    p2_attr_basinArea %>% select(site_no, attr_areaCumulativeSqKm),
                                                     p2_attr_roadSalt_forModel,
                                                     p2_attr_nhd,
-                                                    p2_attr_nhd_upstream,
-                                                    p2_attr_depth2wt_trnmsv))
+                                                    # p2_attr_nhd_upstream,
+                                                    p2_attr_depth2wt_trnmsv
+                                                    ))
   
 )

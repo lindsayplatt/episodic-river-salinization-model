@@ -235,7 +235,7 @@ p1_targets <- list(
   
   # NHDPlus reach and catchment attributes originating from Wieczorek et al., 2018 but
   # downloaded via functions in the `nhdplusTools` R package.
-  tar_target(p1_nhdplus_attr_yml, '1_Download/in/nhdplus_attributes.yml', format='file'),
+  tar_target(p1_nhdplus_attr_yml, '1_Download/in/nhdplus_attributesTOT.yml', format='file'),
   tar_target(p1_nhdplus_attr_list, load_nhdplus_attribute_list(p1_nhdplus_attr_yml)),
   
   # Download catchment attributes data for each COMID
@@ -278,11 +278,11 @@ p1_targets <- list(
   
   # # Download NHD+ catchment polygons by groups of COMIDs (should be 500 total branches with 
   # # ~1235 COMIDs each). This takes slightly over two hours to download over 600k COMID catchments
-  tar_target(p1_nhdplus_catchments_gpkg,
-             download_nhdplus_catchments(out_file = sprintf('1_Download/out_nhdplus/nhdplus_catchment_%s.gpkg',
-                                                            unique(p1_nhdplus_comids_grp$tar_group)),
-                                         comids = p1_nhdplus_comids_grp$nhd_comid),
-             pattern = map(p1_nhdplus_comids_grp),
-             format = 'file', error = "continue")
-  # tar_target(p1_nhdplus_catchments_gpkg, list.files('1_Download/out_nhdplus/',full.names = T))
+  # tar_target(p1_nhdplus_catchments_gpkg,
+  #            download_nhdplus_catchments(out_file = sprintf('1_Download/out_nhdplus/nhdplus_catchment_%s.gpkg',
+  #                                                           unique(p1_nhdplus_comids_grp$tar_group)),
+  #                                        comids = p1_nhdplus_comids_grp$nhd_comid),
+  #            pattern = map(p1_nhdplus_comids_grp),
+  #            format = 'file', error = "continue")
+  tar_target(p1_nhdplus_catchments_gpkg, list.files('1_Download/out_nhdplus/',full.names = T))
 )
