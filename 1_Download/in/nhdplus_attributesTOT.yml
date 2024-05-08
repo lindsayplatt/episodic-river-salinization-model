@@ -1,0 +1,93 @@
+# NHDPlus Attributes to use as static attributes
+# linked to stream sites by COMID
+
+# https://www.sciencebase.gov/catalog/item/5669a79ee4b08895842a1d47 <-- NHD+ Catchment Data Release
+# https://pubs.usgs.gov/of/2019/1096/ofr20191096.pdf <-- NHD+ User Guide (extensive info!)
+
+# To explore these and come up with this list, I 
+# looked through descriptions of all 4,720 attributes 
+# prefixed with `CAT_` using the following code:
+
+# library(tidyverse)
+# library(nhdplusTools)
+# # Get around the issue I logged at https://github.com/DOI-USGS/nhdplusTools/issues/365
+# nhdplusTools::nhdplusTools_data_dir(tools::R_user_dir("nhdplusTools"))
+# nhdplus_descriptions <- get_characteristics_metadata() %>%
+#   split(.$themeLabel) %>%
+#   map(~{
+#     # CAT = catchment
+#     # ACC = accumulated using divergent routing
+#     # TOT = accumulated using total upstream
+#     # Using `CAT`
+#     dplyr::select(.x, ID, description) %>%
+#       filter(grepl('^CAT_', ID))
+#   })
+
+Best Management Practices:
+  # NONE
+
+Chemical:
+  # NONE
+  # Consider atmospheric deposition of chloride in the future?
+
+Climate:
+  # NONE
+  - TOT_PPT7100_ANN # mean annual precip, mm (1971-2000)
+  - TOT_PRSNOW # Snow percent of total precipitation estimate, mean for period 1901-2000.
+  - TOT_TAV7100_DEC # mean December air temp, mm (1971-2000)
+  - TOT_TAV7100_JAN # mean January air temp, mm (1971-2000)
+  - TOT_TAV7100_FEB # mean February air temp, mm (1971-2000)
+  - TOT_TAV7100_MAR # mean March air temp, mm (1971-2000)
+
+Climate and Water Balance:
+  # NONE
+
+Climate Water Balance:
+  # NONE
+  # This includes a timeseries of mean monthly (precip, temp, runoff, etc) per year in model
+  # Don't need those though, we are capturing those vars as single, static values per reach
+
+Geology:
+  # NONE
+  # This includes rock stuff - there is a lot info about rock types and thickness of 
+  # different surficial materials. There is also info about Principal Aquifers and 
+  # rock hydraulic conductivity. Could consider adding some of these later
+
+Hydrologic:
+  - TOT_BFI # baseflow index, % of baseflow to total streamflow
+  - TOT_CONTACT # number of days that infiltrated water resides in the saturated subsurface zone of the basin before discharging into the stream)
+  - TOT_RECHG # mean annual GW recharge
+
+Hydrologic Modifications:
+  # NONE
+
+Land Cover:
+  # I filtered to NLCD 2019 options but there are many years represented
+  - TOT_NLCD19_11 # NLCD 2019 "Open Water"
+  - TOT_NLCD19_21 # NLCD 2019 "Developed, Open" which equals <20% impervious
+  - TOT_NLCD19_22 # NLCD 2019 "Developed, low intensity" which equals 20-49% impervious
+  - TOT_NLCD19_23 # NLCD 2019 "Developed, medium intensity" which equals 50-79% impervious
+  - TOT_NLCD19_24 # NLCD 2019 "Developed, high intensity" which equals 80-100% impervious
+  - TOT_NLCD19_41 # Deciduous Forest
+  - TOT_NLCD19_42 # Evergreen Forest
+  - TOT_NLCD19_43 # Mixed Forest
+  - TOT_NLCD19_81 # Pasture/Hay
+  - TOT_NLCD19_82 # Cultivated Crops
+  - TOT_NLCD19_90 # Woody Wetlands
+  - TOT_NLCD19_95 # Emergent Herbaceous Wetlands
+
+Population:
+  # NONE
+  # The impervious land cover and road density attributes are better measures for our purposes
+
+Regions:
+  # NONE
+
+Soils:
+  # NONE
+
+Topographic:
+  - TOT_BASIN_SLOPE # avg basin slope, %
+
+Water Use:
+  # NONE
