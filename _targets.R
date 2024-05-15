@@ -9,9 +9,7 @@ tar_option_set(
     'arrow',
     'cowplot',
     'dataRetrieval',
-    'EnvStats',
     'exactextractr',
-    'FlowScreen',
     'GGally', # Needed for `ggcorr()`
     'httr',
     'magick', # Needed for 7_Disseminate and `cowplot::draw_image()`
@@ -39,7 +37,6 @@ source('1_Download.R')
 source('2_Prepare.R')
 source('3_Filter.R')
 source('4_EpisodicSalinization.R')
-# source('5_BaseflowSalinization.R')
 source('6_DefineCharacteristics.R')
 source('7_Disseminate.R')
 

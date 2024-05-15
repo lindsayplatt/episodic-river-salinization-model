@@ -1,6 +1,5 @@
 # Targets for applying a random forest to link attributes
 # to each site that is experiencing "episodic salinization"
-# or "baseflow salinization" or both.
 
 source('6_DefineCharacteristics/src/prep_attr_randomforest.R')
 source('6_DefineCharacteristics/src/apply_randomforest.R')
