@@ -1,12 +1,13 @@
+
 #' @title Check duplicate timestamps and year/months
-#' @description Identify years that have at least 3 years of winter and summer 
+#' @description Identify sites that have at least 3 years of winter and summer 
 #' 
 #' @param in_file a feather file with the time series data and at least the 
 #' columns `site_no`, `dateTime`, and `[PARAM]`
 #' @param param_colname a character string indicating the name used in the columns 
 #' for the data values. In this workflow, this is likely `SpecCond`.
 #' 
-#' @return tibble with only sites that qualify
+#' @return tibble of of daily water quality time series for only sites that qualify 
 #' 
 filter_winter <- function(in_file, param_colname) {
   
@@ -69,13 +70,8 @@ identify_temporal_qualifying_sites <- function(ts_data, min_years = 3, min_recen
   
   ts_data %>% 
     group_by(site_no) %>% 
-    summarize(min_date = min(dateTime),
-              max_date = max(dateTime)) %>% 
-    mutate(year_span = as.numeric(max_date - min_date)/365) %>% 
+    summarize(max_date = max(dateTime)) %>% 
     ungroup() %>% 
-    # Filter to sites that have the minimum number of years of data (even 
-    # if there are some gaps, which will be filled by WRTDS)
-    filter(year_span >= min_years) %>% 
     # Filter to sites that have some data more recently than `min_recent_date`
     filter(max_date >= min_recent_date) %>% 
     pull(site_no)
