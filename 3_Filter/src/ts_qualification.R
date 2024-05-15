@@ -82,25 +82,6 @@ identify_temporal_qualifying_sites <- function(ts_data, min_years = 3, min_recen
   
 }
 
-#' @title Find sites that might be in high agricultural areas
-#' @description Identify sites that may be influenced by agriculture because
-#' their SC levels could be much higher than other streams, or behave 
-#' differently than other streams SC data, unrelated to road salt application. 
-#' Sites with over 75% agriculture in their catchments will be flagged here.
-#' 
-#' @param nhd_ag_attrs a tibble with the columns `site_no`, and `attr_pctAgriculture` 
-#' which gives the total percentages of the catchment for each site that is
-#' covered with pasture/hay (`CAT_NLCD19_81`) + cultivated crops (`CAT_NLCD19_82`).
-#' 
-#' @return a vector of NWIS site character strings whose `ts_data` fit into the
-#' `agriculture` category and should be removed.
-#' 
-identify_ag_sites <- function(nhd_ag_attrs) {
-  nhd_ag_attrs %>% 
-    filter(attr_pctAgriculture > 75) %>% 
-    pull(site_no)
-}
-
 #' @title Find sites that have outrageously high SC too frequently
 #' @description Identify sites that may be influenced by some other source of
 #' salt contributing to consistently high SC. Waste water and industrial water
@@ -125,22 +106,6 @@ identify_highSC_sites <- function(ts_data) {
     summarize(perc50 = quantile(SpecCond, probs = 0.50, na.rm=TRUE),
               perc75 = quantile(SpecCond, probs = 0.75, na.rm=TRUE)) %>% 
     filter(perc75 >= 10000 | perc50 >= 55000) %>% 
-    pull(site_no)
-}
-
-#' @title Find sites that have zero road salt
-#' @description Use the road salt attribute data per site (summarizing road salt
-#' applied within the NHD+ catchment, see `aggregate_road_salt_per_poly()`) to keep 
-#' only those sites that had some road salt within their catchment.
-#' 
-#' @param roadSalt_attrs a tibble with the columns `site_no`, and `attr_roadSaltPerSqKm`
-#' 
-#' @return a vector of NWIS site character strings which do not have road salt 
-#' applied within their catchment and should be removed.
-#' 
-identify_nonsalt_sites <- function(roadSalt_attrs) {
-  roadSalt_attrs %>% 
-    filter(attr_roadSaltPerSqKm == 0) %>% 
     pull(site_no)
 }
 

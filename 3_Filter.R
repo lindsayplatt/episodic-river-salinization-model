@@ -47,15 +47,8 @@ p3_targets <- list(
   tar_target(p3_ts_sc_temporal_qualified_sites, 
              identify_temporal_qualifying_sites(p3_ts_sc_winter_qualified)),
   
-  # Identify sites that may be influenced by agriculture (will remove them)
-  # tar_target(p3_ts_sc_ag_sites, identify_ag_sites(p2_ag_attr_nhd)),
-  
   # Identify sites that have suspiciously high SC (will remove them)
   tar_target(p3_ts_sc_highSC_sites, identify_highSC_sites(p3_ts_sc_winter_qualified)),
-  
-  # TODO: REMOVE THIS FILTER.
-  # Identify sites that don't have any road salt applied
-  # tar_target(p3_ts_sc_nonsalt_sites, identify_nonsalt_sites(p2_attr_roadSalt)),
   
   ##### Step 3: filter data to just those sites that match our requirements #####
   
@@ -64,9 +57,7 @@ p3_targets <- list(
              filter_data_to_qualifying_sites(p3_ts_sc_winter_qualified, 
                                              keep_sites = p3_ts_sc_temporal_qualified_sites,
                                              remove_sites = c(p1_nwis_sc_sites_tidal,
-                                                              # p3_ts_sc_ag_sites,
                                                               p3_ts_sc_highSC_sites,
-                                                              # p3_ts_sc_nonsalt_sites,
                                                               p3_nwis_site_with_zero_nhd_area,
                                                               p3_attr_missing_sites))),
   
@@ -75,9 +66,7 @@ p3_targets <- list(
              read_feather(p2_attr_q_dv_feather) %>% 
                filter_data_to_qualifying_sites(keep_sites = p3_ts_sc_temporal_qualified_sites,
                                                remove_sites = c(p1_nwis_sc_sites_tidal,
-                                                                # p3_ts_sc_ag_sites,
                                                                 p3_ts_sc_highSC_sites,
-                                                                # p3_ts_sc_nonsalt_sites,
                                                                 p3_nwis_site_with_zero_nhd_area,
                                                                 p3_attr_missing_sites))),
   
@@ -93,9 +82,7 @@ p3_targets <- list(
              filter_data_to_qualifying_sites(p2_attr_all, 
                                              keep_sites = p3_ts_sc_temporal_qualified_sites,
                                              remove_sites = c(p1_nwis_sc_sites_tidal,
-                                                              # p3_ts_sc_ag_sites,
                                                               p3_ts_sc_highSC_sites,
-                                                              # p3_ts_sc_nonsalt_sites,
                                                               p3_nwis_site_with_zero_nhd_area,
                                                               p3_attr_missing_sites)))
   
