@@ -22,13 +22,13 @@ p7_targets <- list(
                      "Snow (mm/yr)", "Winter Air Temp (°C)", "Depth to WT (m)", "Transmissivity (m2/day)"))),
   
   # Isolate overall importance and out-of-bag errors
-  tar_target(p7_overall_attr_importance_episodic, p6b_rf_attr_importance %>% 
+  tar_target(p7_overall_attr_importance_episodic, p5_rf_attr_importance %>% 
                filter(site_category == 'Overall mean') %>% 
                arrange(desc(importance))),
-  tar_target(p7_oob_error_episodic, round(p6b_rf_oob*100, digits=1)),
+  tar_target(p7_oob_error_episodic, round(p5_rf_oob*100, digits=1)),
   
   # Create a single dataset that shows only site episodic categorization
-  tar_target(p7_site_categories, p6b_site_attr %>% 
+  tar_target(p7_site_categories, p5_site_attr %>% 
                mutate(model = 'episodic') %>% 
                select(site_no, site_category = site_category_fact)),
   
@@ -37,7 +37,7 @@ p7_targets <- list(
   # Saving attribute correlations as a file
   tar_target(p7_attribute_correlations_png, 
              visualize_attr_correlation('7_Disseminate/out/3_attribute_correlations.png',
-                                        p6a_site_attr_rf,
+                                        p5_site_attr_rf,
                                         p7_attr_name_xwalk), 
              format='file'),
   
@@ -63,7 +63,7 @@ p7_targets <- list(
   # Partial dependence plots showing how probability varies by attribute value
   tar_target(p7_partDep_episodic_png, 
              create_partialDependence_miniPlots_figure('7_Disseminate/out/partDep_episodic.png', 
-                                                       p6b_rf_attr_partdep, p6b_site_attr_rf_optimal,
+                                                       p5_rf_attr_partdep, p5_site_attr_rf_optimal,
                                                        p7_overall_attr_importance_episodic$attribute,
                                                        p7_attr_name_xwalk, '#0b5394'),
              format = 'file'),
@@ -80,7 +80,7 @@ p7_targets <- list(
   
   tar_target(p7_attr_all_boxplots_png, 
              create_attribute_boxplots('7_Disseminate/out/3_attributes_boxes_all.png',
-                                       mutate(p6b_site_attr_rf, site_category_fact = 'ALL'),
+                                       mutate(p5_site_attr_rf, site_category_fact = 'ALL'),
                                        # Same order as the table
                                        c('medianFlow', 'basinSlope', 'pctAgriculture',
                                          'pctDeveloped', 'pctForested', 'pctOpenWater',
@@ -96,7 +96,7 @@ p7_targets <- list(
   
   tar_target(p7_attr_episodic_boxplots_png, 
              create_attribute_boxplots('7_Disseminate/out/attributes_boxes_episodic.png',
-                                       p6b_site_attr_rf_optimal,
+                                       p5_site_attr_rf_optimal,
                                        p7_overall_attr_importance_episodic$attribute,
                                        p7_attr_name_xwalk, 
                                        c(Episodic='#0b5394', `Not episodic` = 'grey40')), 
