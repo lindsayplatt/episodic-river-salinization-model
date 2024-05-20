@@ -20,7 +20,7 @@ filter_winter <- function(in_file, param_colname) {
       # Start by creating a data frame with all possible days for each site
       ts_data_all_days <- .x %>% 
         group_by(site_no, dateTime) %>% 
-        summarise(new = mean(get(param_colname), na.rm = T)) %>%
+        summarise(new = mean(get(param_colname), na.rm = T), .groups="keep") %>%
         rename(!!as.name(param_colname) := new) %>% 
         ungroup() %>% 
         filter(dateTime > as.Date('2000-01-01'))
@@ -29,14 +29,14 @@ filter_winter <- function(in_file, param_colname) {
         mutate(year = year(dateTime), month = month(dateTime)) %>% 
         filter(month %in% c(12,1,2,3)) %>% 
         group_by(year) %>% 
-        summarise(n = n()) %>% 
+        summarise(n = n(), .groups="keep") %>% 
         filter(n > 60)
       
       summer = ts_data_all_days %>% 
         mutate(year = year(dateTime), month = month(dateTime)) %>% 
         filter(month %in% c(4:11)) %>% 
         group_by(year) %>% 
-        summarise(n = n()) %>% 
+        summarise(n = n(), .groups="keep") %>% 
         filter(n > 60)
       
       if (nrow(winter) >=3 & nrow(summer) >= 3){
