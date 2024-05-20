@@ -246,24 +246,6 @@ p1_targets <- list(
                                          comids = unique(p1_nwis_site_nhd_comid_ALL_xwalk$nhd_comid)),
              pattern = map(p1_nhdplus_attr_list)),
   
-  # Download catchment attributes data for each COMID upstream
-  tar_target(p1_nhdplus_attr_vals_tbl_upstream, 
-             download_nhdplus_attributes(attributes = unlist(p1_nhdplus_attr_list),
-                                         comids = unique(p1_nhdplus_comids_upstream_ALL$nhd_comid_upstream)),
-             pattern = map(p1_nhdplus_attr_list)),
-  
-  # Create upstream mean (TODO: put this in its own function)
-  tar_target(p1_nhdplus_attr_vals_tbl_upstream_mean, 
-             p2_attr_basinArea_upstream %>% left_join(p1_nhdplus_attr_vals_tbl_upstream %>% 
-                                                      rename(nhd_comid_upstream = nhd_comid), 
-                                                      relationship = 'many-to-many') %>% 
-               mutate(nhd_attr_val = nhd_attr_val*area_sqkm) %>% 
-               group_by(nhd_comid, nhd_attr_id, total_area_sqkm) %>% 
-               summarise(nhd_attr_val_upstream = sum(nhd_attr_val)) %>% 
-               ungroup() %>% 
-               mutate(nhd_attr_val_upstream = nhd_attr_val_upstream/total_area_sqkm)),
-
-  
   # Save attributes with their definitions and commit to the repo
   tar_target(p1_nhdplus_attr_definitions, 
              get_nhdplus_attribute_definitions(p1_nhdplus_attr_vals_tbl)),

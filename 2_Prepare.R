@@ -109,11 +109,6 @@ p2_targets <- list(
   tar_target(p2_attr_nhd, prepare_nhd_attributes(p1_nhdplus_attr_vals_tbl,
                                                  p3_nwis_site_nhd_comid_xwalk)),
  
-  # tar_target(p2_attr_nhd_upstream, prepare_nhd_attributes(p1_nhdplus_attr_vals_tbl_upstream_mean %>% 
-  #                                                           rename(nhd_attr_val = nhd_attr_val_upstream),
-  #                                                         p3_nwis_site_nhd_comid_xwalk) %>% 
-  #              rename_at(vars(-site_no),function(x) paste0(x,"_upstream"))),
-  # 
   # Isolate the agriculture-specific attribute
   tar_target(p2_ag_attr_nhd, p2_attr_nhd %>% select(site_no, attr_pctAgriculture)),
   
