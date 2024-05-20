@@ -245,7 +245,7 @@ download_nwis_data <- function(out_file, site_numbers, param_cd, start_date,
   
   # Throw an error if the request comes back empty
   if(is.data.frame(nwis_data) && nrow(nwis_data) == 0){
-    stop(sprintf("\nThe download attempt failed after %s successive attempts", max_tries))
+    stop(sprintf("\nThe download attempt failed after %s successive attempts", 3))
   }
   
   # Rename & select certain columns + save the data as a file 
