@@ -155,18 +155,36 @@ p1_targets <- list(
   # Falcone, J. A., Oelsner, G. P., and Bock, A. R. (2018). Estimates of Road
   #   Salt Application across the conterminous United States (1992-2015).
   
-  # Have to download the full zipfile but will only be using the 2015 
-  # gridded road salt application rates raster file
+  # Downloading two full zipfiles and then extracting gridded road salt 
+  # application rate raster files to calculate an average from 2010-2019
   
-  tar_target(p1_sb_road_salt_zip, 
+  # Have to do this in two chunks because there are two different zip files
+  tar_target(p1_sb_road_salt_before2015_zip, 
              item_file_download(sb_id = '5b15a50ce4b092d9651e22b9',
                                 names = '1992_2015.zip',
-                                destinations = '1_Download/tmp/road_salt_all.zip'),
+                                destinations = '1_Download/tmp/road_salt_1992_2015.zip'),
              format = 'file'),
-  tar_target(p1_sb_road_salt_2015_tif, 
-             extract_file_from_zip(out_file = '1_Download/out/road_salt_2015.tif', 
-                                   zip_file = p1_sb_road_salt_zip,
-                                   file_to_extract = '2015.tif'), 
+  tar_target(p1_sb_road_salt_before2015_tif, 
+             extract_file_from_zip(out_file = sprintf('1_Download/out/road_salt_%s.tif', 2010:2015), 
+                                   zip_file = p1_sb_road_salt_before2015_zip,
+                                   file_to_extract = sprintf('%s.tif', 2010:2015)), 
+             format = 'file'),
+  
+  # Now need to get 2016-2019, which are stored in a different zip file
+  tar_target(p1_sb_road_salt_after2015_zip, 
+             item_file_download(sb_id = '5b15a50ce4b092d9651e22b9',
+                                names = '2016_2019.zip',
+                                destinations = '1_Download/tmp/road_salt_2016_2019.zip'),
+             format = 'file'),
+  tar_target(p1_sb_road_salt_after2015_tif, 
+             extract_file_from_zip(out_file = sprintf('1_Download/out/road_salt_%s.tif', 2016:2019), 
+                                   zip_file = p1_sb_road_salt_after2015_zip,
+                                   file_to_extract = sprintf('%s.tif', 2016:2019)), 
+             format = 'file'),
+  
+  # Now combine into a single list of files
+  tar_target(p1_sb_road_salt_tif, 
+             c(p1_sb_road_salt_before2015_tif, p1_sb_road_salt_after2015_tif),
              format = 'file'),
   
   ###### SB DATA 2: Gridded groundwater attributes (Zell and Sanford, 2020) ######
