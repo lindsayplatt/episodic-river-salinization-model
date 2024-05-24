@@ -257,8 +257,7 @@ p1_targets <- list(
                                count = 1000, # Set 1000 groups to map over
                                # Create unique vector of COMIDs to download catchments only once
                                tibble(nhd_comid = unique(c(p1_nhdplus_comids, p1_nhdplus_comids_upstream_ALL$nhd_comid_upstream)))),
-  # TODO: MIGHT BE ABLE TO GET AROUND THIS BY DOWNLOADING ALL COMIDS IN THE STATES WE HAVE
-  # THEN ISOLATING/FILTERING TO JUST THE ONES THAT MATCH A SITE FOR DOWNSTREAM THINGS.
+  
   # Download NHD+ catchment polygons by groups of COMIDs (should be 1000 total branches with
   # ~590 COMIDs each). This takes slightly over two hours to download over 600k COMID catchments
   tar_target(p1_nhdplus_catchments_gpkg,
