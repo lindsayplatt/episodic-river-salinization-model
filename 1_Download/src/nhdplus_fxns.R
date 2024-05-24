@@ -213,7 +213,33 @@ download_nhdplus_catchments <- function(out_file, comids) {
                    return_data = FALSE, 
                    overwrite = TRUE)
   }, error = function(e) {
-    if(grepl('st_cast for MULTIGEOMETRYCOLLECTION not supported', e$message) |
+    if(grepl('subscript out of bounds', e$message)) {
+      # If this error happens, try downloading in two separate groups
+      # This method is here to split if it needs to but groups of ~600 
+      # COMIDs seem to be small enough to get the whole country without
+      # this catch. It also was erroring but I never figured out the issue.
+      # Something with the filenames I think? When I can back to troubleshoot,
+      # it was just building without needing to end this part. Committing
+      # anyways so we have this if we need it in the future.
+      grp_n <- ceiling(length(comids)/2)
+      out_file_split <- c(gsub('.gpkg', '-1.gpkg', out_file),
+                          gsub('.gpkg', '-2.gpkg', out_file))
+      subset_nhdplus(comids = as.integer(comids[1:grp_n]),
+                     output_file = out_file_split[1],
+                     nhdplus_data = "download", 
+                     flowline_only = FALSE,
+                     return_data = FALSE, 
+                     overwrite = TRUE)
+      subset_nhdplus(comids = as.integer(comids[(grp_n+1):length(comids)]),
+                     output_file = out_file_split[1],
+                     nhdplus_data = "download", 
+                     flowline_only = FALSE,
+                     return_data = FALSE, 
+                     overwrite = TRUE)
+      # Replace `out_file` with new vector of files to return the things created
+      out_file <- out_file_split
+      warning(sprintf('Caught error and split into multiple download groups ... %s', e$message))
+    } else if(grepl('st_cast for MULTIGEOMETRYCOLLECTION not supported', e$message) |
        grepl('nrow(x) == length(value) is not TRUE', e$message, fixed=T) |
        grepl('Loop 0 is not valid: Edge 11 crosses edge 13', e$message) |
        grepl('arguments have different crs', e$message)) {

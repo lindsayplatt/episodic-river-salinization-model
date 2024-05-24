@@ -14,7 +14,7 @@ tar_option_set(
     'httr',
     'magick', # Needed for 7_Disseminate and `cowplot::draw_image()`
     'MESS',
-    'nhdplusTools',
+    'nhdplusTools', # Need to have a specific version. TODO, update once its on CRAN https://github.com/DOI-USGS/nhdplusTools/issues/365#ref-commit-6b18b97
     'pdp',
     'qs',
     'randomForest',

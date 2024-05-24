@@ -254,17 +254,18 @@ p1_targets <- list(
   tar_target(p1_nhdplus_comids, na.omit(unique(p1_nwis_site_nhd_comid_ALL_xwalk$nhd_comid))),
   tar_target(p1_nhdplus_comids_upstream_ALL, identify_upstream_comids(p1_nhdplus_comids), map(p1_nhdplus_comids)), # Identify upstream COMIDs
   tarchetypes::tar_group_count(p1_nhdplus_comids_grp, 
-                               count = 500, # Set 500 groups to map over
+                               count = 1000, # Set 1000 groups to map over
                                # Create unique vector of COMIDs to download catchments only once
                                tibble(nhd_comid = unique(c(p1_nhdplus_comids, p1_nhdplus_comids_upstream_ALL$nhd_comid_upstream)))),
-  
-  # # Download NHD+ catchment polygons by groups of COMIDs (should be 500 total branches with 
-  # # ~1235 COMIDs each). This takes slightly over two hours to download over 600k COMID catchments
-  # tar_target(p1_nhdplus_catchments_gpkg,
-  #            download_nhdplus_catchments(out_file = sprintf('1_Download/out_nhdplus/nhdplus_catchment_%s.gpkg',
-  #                                                           unique(p1_nhdplus_comids_grp$tar_group)),
-  #                                        comids = p1_nhdplus_comids_grp$nhd_comid),
-  #            pattern = map(p1_nhdplus_comids_grp),
-  #            format = 'file', error = "continue")
-  tar_target(p1_nhdplus_catchments_gpkg, list.files('1_Download/out_nhdplus/',full.names = T))
+  # TODO: MIGHT BE ABLE TO GET AROUND THIS BY DOWNLOADING ALL COMIDS IN THE STATES WE HAVE
+  # THEN ISOLATING/FILTERING TO JUST THE ONES THAT MATCH A SITE FOR DOWNSTREAM THINGS.
+  # Download NHD+ catchment polygons by groups of COMIDs (should be 1000 total branches with
+  # ~590 COMIDs each). This takes slightly over two hours to download over 600k COMID catchments
+  tar_target(p1_nhdplus_catchments_gpkg,
+             download_nhdplus_catchments(out_file = sprintf('1_Download/out_nhdplus/nhdplus_catchment_%s.gpkg',
+                                                            unique(p1_nhdplus_comids_grp$tar_group)),
+                                         comids = p1_nhdplus_comids_grp$nhd_comid),
+             pattern = map(p1_nhdplus_comids_grp),
+             format = 'file', error = "continue")
+  # tar_target(p1_nhdplus_catchments_gpkg, list.files('1_Download/out_nhdplus/',full.names = T))
 )
