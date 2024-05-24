@@ -52,10 +52,8 @@ create_site_catchment_map <- function(the_site_no, site_nhd_xwalk, nhd_comids_up
     filter(site_no %in% the_site_no)
   
   fill_category <- case_when(
-    the_site_attrs$site_category_fact == 'Baseflow' ~ 'lightcyan2',
-    the_site_attrs$site_category_fact == 'Episodic' ~ 'mistyrose2',
-    the_site_attrs$site_category_fact == 'Both' ~ 'antiquewhite3',
-    the_site_attrs$site_category_fact == 'Neither' ~ 'white')
+    the_site_attrs$site_category_fact == 'Not episodic' ~ 'lightcyan2',
+    the_site_attrs$site_category_fact == 'Episodic' ~ 'mistyrose2')
   
   ggplot() + 
     geom_sf(data = catchment_sf, fill='lightgrey', color = 'white', linewidth=0.5) +

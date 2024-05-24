@@ -17,7 +17,7 @@ calculate_attr_importance <- function(rf_model) {
   rf_importance <- rf_model$importance %>% 
     as_tibble(rownames = 'attribute') %>% 
     dplyr::select(-MeanDecreaseGini, -MeanDecreaseAccuracy) %>% 
-    pivot_longer(matches('Both|Baseflow|Episodic|Neither|negative|none|positive'), 
+    pivot_longer(matches('Episodic|Not episodic'), 
                  names_to = 'site_category',
                  values_to = 'importance') 
   
@@ -25,7 +25,7 @@ calculate_attr_importance <- function(rf_model) {
   rf_importance_sd <- rf_model$importanceSD %>% 
     as_tibble(rownames = 'attribute') %>% 
     dplyr::select(-MeanDecreaseAccuracy) %>% 
-    pivot_longer(matches('Both|Baseflow|Episodic|Neither|negative|none|positive'), 
+    pivot_longer(matches('Episodic|Not episodic'), 
                  names_to = 'site_category',
                  values_to = 'importance_sd')
   
@@ -108,7 +108,6 @@ visualize_attr_importance1 <- function(rf_model_importance) {
     xlab('Gini index of importance')
   
   # '#0b5394' - color for episodic in slidedeck.
-  # '#b45f06' - color for baseflow in slidedeck.
 }
 
 # TODO: show partial dependence of two features? 

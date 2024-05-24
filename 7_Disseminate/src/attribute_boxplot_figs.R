@@ -35,8 +35,9 @@ create_attribute_boxplots <- function(out_file, site_attr_data, attribute_order,
   
   data_to_plot <- site_attr_data %>% 
     dplyr::select(site_category_fact, where(is.numeric)) %>%
-    # Log scale median flow for visual purposes
-    mutate(medianFlow = log10(medianFlow)) %>% 
+    # Log scale median flow for visual purposes 
+    # TODO: comment out medianFlow for now, reinstate later? or delete?
+    # mutate(medianFlow = log10(medianFlow)) %>% 
     pivot_longer(cols = -site_category_fact, 
                  names_to = 'attribute', 
                  values_to = 'attr_val') %>% 

@@ -18,12 +18,13 @@ visualize_attr_correlation <- function(out_file, site_attr_data, attribute_name_
   attribute_name_xwalk <- attribute_name_xwalk %>% 
     mutate(display_name_adj = gsub('(\\/)|\\([^()]*\\)', '', display_name), # Remove units
            display_name_adj = gsub('[[:space:]]', '', display_name_adj))# Remove whitespace
-    
+  
   data_to_plot <- site_attr_data %>% 
-    select(-site_category_fact) %>%
-    # Rename the columns of attributes based on the crosswalk
-    rename_with(~attribute_name_xwalk$display_name_adj, 
-                attribute_name_xwalk$attribute)
+    select(-site_category_fact) #%>%
+    # TODO: SKIP RENAMING FOR NOW. Come back later when our attributes are set and redo this
+    # # Rename the columns of attributes based on the crosswalk
+    # rename_with(~attribute_name_xwalk$display_name_adj, 
+    #             attribute_name_xwalk$attribute)
   
   p <- ggcorr(data = data_to_plot, 
               method = c("everything", "spearman"),

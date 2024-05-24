@@ -189,24 +189,6 @@ p1_targets <- list(
                                 destinations = '1_Download/out/transmissivity.csv'), 
              format = 'file'),
   
-  ##### ADDITIONAL DATASETS ONLINE {< 1 MIN} #####
-  
-  # Hare, D. K., Helton, A. M., Johnson, Z. C., Lane, J. W., and Briggs, M. A. (2021). 
-  #   Continental-scale analysis of shallow and deep groundwater contributions to streams.
-  #   Nature Communications, 12(1):1450. Number: 1 Publisher: Nature Publishing Group.
-  
-  # The groundwater signature dataset from Hare et al. 2021 is available for download on
-  # nature.com. The following targets download the zipfile and unzip, keeping the needed files.
-  tar_target(p1_url_gwsig_zip, 
-             download_file_from_url(out_file = '1_Download/tmp/gwsig.zip',
-                                    url_in = 'https://static-content.springer.com/esm/art%3A10.1038%2Fs41467-021-21651-0/MediaObjects/41467_2021_21651_MOESM3_ESM.zip'),
-             format = 'file'),
-  tar_target(p1_url_gwsig_xlsx, 
-             extract_file_from_zip(out_file = '1_Download/out/gwsig.xlsx', 
-                                   zip_file = p1_url_gwsig_zip,
-                                   file_to_extract = 'sourcedatafigs1,2and3.xlsx'), 
-             format = 'file'),
-  
   ##### NHD+: Identify COMIDs for USGS NWIS sites & download catchment attributes {?? MIN} #####
   
   ###### Link stream sites to COMIDs #####
@@ -246,24 +228,6 @@ p1_targets <- list(
                                          comids = unique(p1_nwis_site_nhd_comid_ALL_xwalk$nhd_comid)),
              pattern = map(p1_nhdplus_attr_list)),
   
-  # Download catchment attributes data for each COMID upstream
-  tar_target(p1_nhdplus_attr_vals_tbl_upstream, 
-             download_nhdplus_attributes(attributes = unlist(p1_nhdplus_attr_list),
-                                         comids = unique(p1_nhdplus_comids_upstream_ALL$nhd_comid_upstream)),
-             pattern = map(p1_nhdplus_attr_list)),
-  
-  # Create upstream mean (TODO: put this in its own function)
-  tar_target(p1_nhdplus_attr_vals_tbl_upstream_mean, 
-             p2_attr_basinArea_upstream %>% left_join(p1_nhdplus_attr_vals_tbl_upstream %>% 
-                                                      rename(nhd_comid_upstream = nhd_comid), 
-                                                      relationship = 'many-to-many') %>% 
-               mutate(nhd_attr_val = nhd_attr_val*area_sqkm) %>% 
-               group_by(nhd_comid, nhd_attr_id, total_area_sqkm) %>% 
-               summarise(nhd_attr_val_upstream = sum(nhd_attr_val)) %>% 
-               ungroup() %>% 
-               mutate(nhd_attr_val_upstream = nhd_attr_val_upstream/total_area_sqkm)),
-
-  
   # Save attributes with their definitions and commit to the repo
   tar_target(p1_nhdplus_attr_definitions, 
              get_nhdplus_attribute_definitions(p1_nhdplus_attr_vals_tbl)),
@@ -272,17 +236,17 @@ p1_targets <- list(
   tar_target(p1_nhdplus_comids, na.omit(unique(p1_nwis_site_nhd_comid_ALL_xwalk$nhd_comid))),
   tar_target(p1_nhdplus_comids_upstream_ALL, identify_upstream_comids(p1_nhdplus_comids), map(p1_nhdplus_comids)), # Identify upstream COMIDs
   tarchetypes::tar_group_count(p1_nhdplus_comids_grp, 
-                               count = 500, # Set 500 groups to map over
+                               count = 1000, # Set 1000 groups to map over
                                # Create unique vector of COMIDs to download catchments only once
                                tibble(nhd_comid = unique(c(p1_nhdplus_comids, p1_nhdplus_comids_upstream_ALL$nhd_comid_upstream)))),
   
-  # # Download NHD+ catchment polygons by groups of COMIDs (should be 500 total branches with 
-  # # ~1235 COMIDs each). This takes slightly over two hours to download over 600k COMID catchments
-  # tar_target(p1_nhdplus_catchments_gpkg,
-  #            download_nhdplus_catchments(out_file = sprintf('1_Download/out_nhdplus/nhdplus_catchment_%s.gpkg',
-  #                                                           unique(p1_nhdplus_comids_grp$tar_group)),
-  #                                        comids = p1_nhdplus_comids_grp$nhd_comid),
-  #            pattern = map(p1_nhdplus_comids_grp),
-  #            format = 'file', error = "continue")
-  tar_target(p1_nhdplus_catchments_gpkg, list.files('1_Download/out_nhdplus/',full.names = T))
+  # Download NHD+ catchment polygons by groups of COMIDs (should be 1000 total branches with
+  # ~590 COMIDs each). This takes slightly over two hours to download over 600k COMID catchments
+  tar_target(p1_nhdplus_catchments_gpkg,
+             download_nhdplus_catchments(out_file = sprintf('1_Download/out_nhdplus/nhdplus_catchment_%s.gpkg',
+                                                            unique(p1_nhdplus_comids_grp$tar_group)),
+                                         comids = p1_nhdplus_comids_grp$nhd_comid),
+             pattern = map(p1_nhdplus_comids_grp),
+             format = 'file', error = "continue")
+  # tar_target(p1_nhdplus_catchments_gpkg, list.files('1_Download/out_nhdplus/',full.names = T))
 )

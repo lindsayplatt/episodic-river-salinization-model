@@ -18,9 +18,9 @@
 #     # CAT = catchment
 #     # ACC = accumulated using divergent routing
 #     # TOT = accumulated using total upstream
-#     # Using `CAT`
+#     # Using `TOT`
 #     dplyr::select(.x, ID, description) %>%
-#       filter(grepl('^CAT_', ID))
+#       filter(grepl('^TOT_', ID))
 #   })
 
 Best Management Practices:

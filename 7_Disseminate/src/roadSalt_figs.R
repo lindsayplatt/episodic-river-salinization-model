@@ -1,7 +1,7 @@
 
 #' @title Create a boxplot of road salt attributes by site model category
 #' @description Show how road salt may differ in distribution between the episodic
-#' classification, the baseflow classification, and the overall distribution.
+#' classification and the overall distribution.
 #' 
 #' @param out_file a filepath specifying where to save the image output as a PNG
 #' @param site_attr_data a tibble with one row per site and any number of columns
@@ -24,11 +24,11 @@ create_roadSalt_boxplot <- function(out_file, site_attr_data, all_site_categorie
     left_join(site_attr_data, by = 'site_no') %>% 
     mutate(fill_col = case_when(
       model == 'episodic' ~ '#0b5394',
-      model == 'baseflow' ~ '#b45f06',
       model == 'none' ~ 'grey50'))  %>% 
     mutate(site_category_fact = factor(site_category, 
-                                       levels = c('All Sites', 'Episodic', 'Not episodic',
-                                                  'positive', 'none', 'negative'))) 
+                                       levels = c('All Sites', 
+                                                  'Episodic', 
+                                                  'Not episodic'))) 
   
   count_vals <- function(data) {
     tibble(y = 300000,
@@ -101,8 +101,7 @@ create_roadSalt_site_map <- function(out_file, site_attr_data, sites_sf, states_
 }
 
 #' @title Create a map of gridded road salt data
-#' @description Show how road salt may differ in distribution between the episodic
-#' classification, the baseflow classification, and the overall distribution.
+#' @description Show how road salt applications are distributed spatially.
 #' 
 #' @param out_file a filepath specifying where to save the image output as a PNG
 #' @param road_salt_tif filepath to the road salt tif file

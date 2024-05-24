@@ -1,12 +1,13 @@
+
 #' @title Check duplicate timestamps and year/months
-#' @description Identify years that have at least 3 years of winter and summer 
+#' @description Identify sites that have at least 3 years of winter and summer 
 #' 
 #' @param in_file a feather file with the time series data and at least the 
 #' columns `site_no`, `dateTime`, and `[PARAM]`
 #' @param param_colname a character string indicating the name used in the columns 
 #' for the data values. In this workflow, this is likely `SpecCond`.
 #' 
-#' @return tibble with only sites that qualify
+#' @return tibble of of daily water quality time series for only sites that qualify 
 #' 
 filter_winter <- function(in_file, param_colname) {
   
@@ -19,7 +20,7 @@ filter_winter <- function(in_file, param_colname) {
       # Start by creating a data frame with all possible days for each site
       ts_data_all_days <- .x %>% 
         group_by(site_no, dateTime) %>% 
-        summarise(new = mean(get(param_colname), na.rm = T)) %>%
+        summarise(new = mean(get(param_colname), na.rm = T), .groups="keep") %>%
         rename(!!as.name(param_colname) := new) %>% 
         ungroup() %>% 
         filter(dateTime > as.Date('2000-01-01'))
@@ -28,14 +29,14 @@ filter_winter <- function(in_file, param_colname) {
         mutate(year = year(dateTime), month = month(dateTime)) %>% 
         filter(month %in% c(12,1,2,3)) %>% 
         group_by(year) %>% 
-        summarise(n = n()) %>% 
+        summarise(n = n(), .groups="keep") %>% 
         filter(n > 60)
       
       summer = ts_data_all_days %>% 
         mutate(year = year(dateTime), month = month(dateTime)) %>% 
         filter(month %in% c(4:11)) %>% 
         group_by(year) %>% 
-        summarise(n = n()) %>% 
+        summarise(n = n(), .groups="keep") %>% 
         filter(n > 60)
       
       if (nrow(winter) >=3 & nrow(summer) >= 3){
@@ -69,36 +70,12 @@ identify_temporal_qualifying_sites <- function(ts_data, min_years = 3, min_recen
   
   ts_data %>% 
     group_by(site_no) %>% 
-    summarize(min_date = min(dateTime),
-              max_date = max(dateTime)) %>% 
-    mutate(year_span = as.numeric(max_date - min_date)/365) %>% 
+    summarize(max_date = max(dateTime)) %>% 
     ungroup() %>% 
-    # Filter to sites that have the minimum number of years of data (even 
-    # if there are some gaps, which will be filled by WRTDS)
-    filter(year_span >= min_years) %>% 
     # Filter to sites that have some data more recently than `min_recent_date`
     filter(max_date >= min_recent_date) %>% 
     pull(site_no)
   
-}
-
-#' @title Find sites that might be in high agricultural areas
-#' @description Identify sites that may be influenced by agriculture because
-#' their SC levels could be much higher than other streams, or behave 
-#' differently than other streams SC data, unrelated to road salt application. 
-#' Sites with over 75% agriculture in their catchments will be flagged here.
-#' 
-#' @param nhd_ag_attrs a tibble with the columns `site_no`, and `attr_pctAgriculture` 
-#' which gives the total percentages of the catchment for each site that is
-#' covered with pasture/hay (`CAT_NLCD19_81`) + cultivated crops (`CAT_NLCD19_82`).
-#' 
-#' @return a vector of NWIS site character strings whose `ts_data` fit into the
-#' `agriculture` category and should be removed.
-#' 
-identify_ag_sites <- function(nhd_ag_attrs) {
-  nhd_ag_attrs %>% 
-    filter(attr_pctAgriculture > 75) %>% 
-    pull(site_no)
 }
 
 #' @title Find sites that have outrageously high SC too frequently
@@ -125,22 +102,6 @@ identify_highSC_sites <- function(ts_data) {
     summarize(perc50 = quantile(SpecCond, probs = 0.50, na.rm=TRUE),
               perc75 = quantile(SpecCond, probs = 0.75, na.rm=TRUE)) %>% 
     filter(perc75 >= 10000 | perc50 >= 55000) %>% 
-    pull(site_no)
-}
-
-#' @title Find sites that have zero road salt
-#' @description Use the road salt attribute data per site (summarizing road salt
-#' applied within the NHD+ catchment, see `aggregate_road_salt_per_poly()`) to keep 
-#' only those sites that had some road salt within their catchment.
-#' 
-#' @param roadSalt_attrs a tibble with the columns `site_no`, and `attr_roadSaltPerSqKm`
-#' 
-#' @return a vector of NWIS site character strings which do not have road salt 
-#' applied within their catchment and should be removed.
-#' 
-identify_nonsalt_sites <- function(roadSalt_attrs) {
-  roadSalt_attrs %>% 
-    filter(attr_roadSaltPerSqKm == 0) %>% 
     pull(site_no)
 }
 
