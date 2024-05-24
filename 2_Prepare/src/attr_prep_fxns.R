@@ -110,20 +110,32 @@ calculate_Upstream_areas <- function(polys_sf, comid_upstream_tbl, comid_site_xw
     select(site_no, nhd_comid, nhd_comid_upstream, area_sqkm, total_area_sqkm)
 }
 
+#' @title Average road salt application rasters
+#' @description Read annual road salt application rasters and calculate an average
+#' 
+#' @param road_salt_tif filepath(s) to the road salt tif files that should be averaged
+#' 
+#' @returns a single raster of the same dimensions and size as the tifs passed in
+#' 
+average_road_salt_rasters <- function(road_salt_tifs) {
+  raster::stack(road_salt_tifs) %>% 
+    mean() %>% 
+    setNames('road_salt_avg')
+}
+
 #' @title Aggregate road salt application values per polygon
 #' @description Extract and sum cell values from the road salt raster file
 #' to get a single road salt application rate value for each polygon.
 #' 
-#' @param road_salt_tif filepath to the road salt tif file
+#' @param road_salt_rast a single raster object of road salt application rates
 #' @param polys_sf a spatial data frame with polygons. Needs to be an `sf` class.
 #' 
 #' @returns a tibble with the columns `nhd_comid` and `road_salt_kgs` with the
 #' total road salt per COMID catchment polygon
 #' 
-aggregate_road_salt_per_poly <- function(road_salt_tif, polys_sf) {
+aggregate_road_salt_per_poly <- function(road_salt_rast, polys_sf) {
   
-  # Load and reproject the road salt raster data
-  road_salt_rast <- raster::raster(road_salt_tif)
+  # Reproject the road salt raster data
   road_salt_rast_proj <- raster::projectRaster(road_salt_rast, 
                                                crs = st_crs(polys_sf)$input)
   

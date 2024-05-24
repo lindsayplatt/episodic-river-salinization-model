@@ -104,13 +104,13 @@ create_roadSalt_site_map <- function(out_file, site_attr_data, sites_sf, states_
 #' @description Show how road salt applications are distributed spatially.
 #' 
 #' @param out_file a filepath specifying where to save the image output as a PNG
-#' @param road_salt_tif filepath to the road salt tif file
+#' @param road_salt_rast a single raster object of road salt application rates
 #' @param states_to_include a vector of state two-letter abbreviation codes to
 #' create the map object using `usmap` package fxns.
 #' 
 #' @returns a character string giving the location of the saved figure file
 #' 
-create_roadSalt_map <- function(out_file, road_salt_tif, states_to_include) {
+create_roadSalt_map <- function(out_file, road_salt_rast, states_to_include) {
   
   # Create state polygons to crop raster
   states_sf <- usmap::us_map(include = states_to_include) %>% 
@@ -118,7 +118,7 @@ create_roadSalt_map <- function(out_file, road_salt_tif, states_to_include) {
              crs = usmap::usmap_crs())
   
   # Prepare road salt raster data
-  road_salt_rast <- raster::raster(road_salt_tif) %>% 
+  road_salt_rast <- road_salt_rast %>% 
     # Reproject the road salt raster data
     raster::projectRaster(., crs = usmap::usmap_crs()$input) %>% 
     # Crop to the exact states polygons
@@ -132,8 +132,8 @@ create_roadSalt_map <- function(out_file, road_salt_tif, states_to_include) {
   # Prepare road salt grids for plotting - only those above 0 and in categories
   road_salt_tbl <- road_salt_rast %>% 
     as.data.frame(., xy=TRUE) %>% 
-    filter(road_salt_2015 > 0) %>% 
-    mutate(roadSalt_cat = cut(road_salt_2015, 
+    filter(road_salt_avg > 0) %>% 
+    mutate(roadSalt_cat = cut(road_salt_avg, 
                               breaks = c(0,salt_quants), 
                               labels = c('Low (< 25%ile)', 'Medium', 'High (> 75%ile)'), 
                               right = TRUE))

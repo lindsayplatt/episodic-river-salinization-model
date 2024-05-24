@@ -64,6 +64,9 @@ p2_targets <- list(
   
   ###### ATTR DATA 2: Extract road salt application per site ######
   
+  # First, calculate an average across all tifs from 2010-2019
+  tar_target(p2_road_salt_rast, average_road_salt_rasters(p1_sb_road_salt_tif)),
+  
   # Extract the flowline spatial features from the downloaded geopackages. This 
   # includes ALL COMIDs (even those with 0 drainage areas), but will be filtered later.
   tar_target(p2_nhdplus_flowlines_ALL_sf, extract_nhdplus_geopackage_layer(p1_nhdplus_catchments_gpkg, 
@@ -76,7 +79,7 @@ p2_targets <- list(
   # Extract the catchments as polygons and summarize total salt per catchment
   # This includes any catchments that will only be used for upstream calculations
   tar_target(p2_nhdplus_catchment_sf, extract_nhdplus_geopackage_layer(p1_nhdplus_catchments_gpkg)),
-  tar_target(p2_nhdplus_catchment_salt, aggregate_road_salt_per_poly(road_salt_tif = p1_sb_road_salt_2015_tif, 
+  tar_target(p2_nhdplus_catchment_salt, aggregate_road_salt_per_poly(road_salt_rast = p2_road_salt_rast, 
                                                                      polys_sf = p2_nhdplus_catchment_sf)),
   
   # Before summarizing the rest of the data below, the NHD COMID data for what 

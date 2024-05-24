@@ -55,7 +55,7 @@ p7_targets <- list(
   
   # Map of gridded roadsalt 
   tar_target(p7_roadsalt_gridmap_png, 
-             create_roadSalt_map('7_Disseminate/out/2.2_roadSalt_gridmap.png', p1_sb_road_salt_2015_tif, p1_conus_state_cds),
+             create_roadSalt_map('7_Disseminate/out/2.2_roadSalt_gridmap.png', p2_road_salt_rast, p1_conus_state_cds),
              format = 'file'),
   
   ##### Partial dependence plots #####
