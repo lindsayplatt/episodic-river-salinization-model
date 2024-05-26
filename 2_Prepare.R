@@ -105,7 +105,7 @@ p2_targets <- list(
                                                               comid_upstream_tbl = p3_nhdplus_comids_upstream)),
   
   # Now keep only the salt attributes of interest in the final model
-  tar_target(p2_attr_roadSalt_forModel, p2_attr_roadSalt %>% select(site_no, attr_roadSaltPerSqKm, attr_roadSaltCumulativePerSqKm)),
+  tar_target(p2_attr_roadSalt_forModel, p2_attr_roadSalt %>% select(site_no, attr_roadSaltCumulativePerSqKm)),
   
   ###### ATTR DATA 3: Pivot and link NHD+ attributes to sites ######
   

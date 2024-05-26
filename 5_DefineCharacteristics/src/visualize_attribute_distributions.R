@@ -97,7 +97,8 @@ visualize_all_attributes <- function(site_attributes) {
     pivot_longer(everything(), names_to = 'attribute') %>% 
     mutate(attribute = gsub('attr_', '', attribute)) %>% 
     rowwise() %>% 
-    mutate(value = ifelse(attribute %in% c('medianFlow', 'roadSaltPerSqKm') & value > 0, 
+    mutate(value = ifelse(attribute %in% c('medianFlow', 'roadSaltPerSqKm', 
+                                           'roadSaltCumulativePerSqKm') & value > 0, 
                           log10(value), value)) %>% 
     ggplot(aes(x = attribute, y = value, fill=attribute)) +
     geom_boxplot() +

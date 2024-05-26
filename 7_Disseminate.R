@@ -12,11 +12,11 @@ p7_targets <- list(
   
   # Create a manual crosswalk between attribute names and display names
   tar_target(p7_attr_name_xwalk, tibble(
-    attribute = c("medianFlow", "roadSaltPerSqKm", "annualPrecip", "baseFlowInd", 
+    attribute = c("medianFlow", "roadSaltCumulativePerSqKm", "annualPrecip", "baseFlowInd", 
                   "subsurfaceContact", "gwRecharge", "pctOpenWater", "basinSlope", 
                   "pctForested", "pctWetland", "pctAgriculture", "pctDeveloped", 
                   "annualSnow", "winterAirTemp", "depthToWT", "transmissivity"),
-    display_name = c("Median Flow (m3/s)", "Road Salt / SqKm (kg)", "Precip (mm/yr)", "Baseflow Index",
+    display_name = c("Median Flow (m3/s)", "Watershed Road Salt (kg/km2)", "Precip (mm/yr)", "Baseflow Index",
                      "Subsurface Contact (days)", "GW Recharge (mm/yr)", "Open Water (% area)", "Basin Slope (%)",
                      "Forested (% area)", "Wetland (% area)", "Agriculture (% area)", "Developed (% area)", 
                      "Snow (mm/yr)", "Winter Air Temp (°C)", "Depth to WT (m)", "Transmissivity (m2/day)"))),
@@ -87,7 +87,7 @@ p7_targets <- list(
                                          'pctWetland', 'annualPrecip', 'annualSnow',
                                          'winterAirTemp', 'baseFlowInd', 'gwRecharge',
                                          'subsurfaceContact', 'depthToWT', 
-                                         'transmissivity', 'roadSaltPerSqKm'),
+                                         'transmissivity', 'roadSaltCumulativePerSqKm'),
                                        p7_attr_name_xwalk, 
                                        c(ALL='#868b8e'),
                                        legend_position = "none",
