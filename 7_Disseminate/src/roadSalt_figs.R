@@ -37,7 +37,7 @@ create_roadSalt_boxplot <- function(out_file, site_attr_data, all_site_categorie
   
   p_boxes <- ggplot(all_road_salt_data, 
          aes(x = site_category_fact,
-             y = attr_roadSaltPerSqKm, 
+             y = attr_roadSaltCumulativePerSqKm, 
              fill = fill_col)) +
     geom_boxplot() +
     scale_y_continuous(labels = scales::comma) +
@@ -69,15 +69,15 @@ create_roadSalt_boxplot <- function(out_file, site_attr_data, all_site_categorie
 create_roadSalt_site_map <- function(out_file, site_attr_data, sites_sf, states_to_include) {
   
   # Calculate the 25th, 75th, and max values in the road salt data
-  quants_these_sites <- quantile(site_attr_data$attr_roadSaltPerSqKm, probs = c(0.25, 0.75, 1))
+  quants_these_sites <- quantile(site_attr_data$attr_roadSaltCumulativePerSqKm, probs = c(0.25, 0.75, 1))
   quants_these_sites <- quants_these_sites * c(1,1,1.01) # Ensure that the maximum value is actually included
   
   sites_w_roadSalt <- sites_sf %>% 
     # First filter to only the sites we modeled with
     filter(site_no %in% unique(site_attr_data$site_no)) %>% 
     # Then join road attribute data and categorize road salt
-    left_join(select(site_attr_data, site_no, attr_roadSaltPerSqKm), by = 'site_no') %>% 
-    mutate(roadSalt_cat = cut(attr_roadSaltPerSqKm, 
+    left_join(select(site_attr_data, site_no, attr_roadSaltCumulativePerSqKm), by = 'site_no') %>% 
+    mutate(roadSalt_cat = cut(attr_roadSaltCumulativePerSqKm, 
                               breaks = c(0,quants_these_sites), 
                               labels = c('Low', 'Medium', 'High'), 
                               right = TRUE))
