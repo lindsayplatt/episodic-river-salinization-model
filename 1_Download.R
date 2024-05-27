@@ -4,6 +4,7 @@ source('1_Download/src/download_helper_fxns.R')
 source('1_Download/src/nhdplus_fxns.R')
 source('1_Download/src/nwis_fxns.R')
 source('1_Download/src/retry_fxns.R')
+source('1_Download/src/nwm_fxns.R')
 
 p1_targets <- list(
   
@@ -265,6 +266,20 @@ p1_targets <- list(
                                                             unique(p1_nhdplus_comids_grp$tar_group)),
                                          comids = p1_nhdplus_comids_grp$nhd_comid),
              pattern = map(p1_nhdplus_comids_grp),
-             format = 'file', error = "continue")
+             format = 'file', error = "continue"),
   # tar_target(p1_nhdplus_catchments_gpkg, list.files('1_Download/out_nhdplus/',full.names = T))
+  
+  ##### Download National Water Model streamflow #####
+  
+  # NOAA National Water Model CONUS Retrospective Dataset was accessed 
+  #   on May 27, 2024 from https://registry.opendata.aws/nwm-archive.
+  
+  # And calculates the median per COMID before returning data
+  # This took ~4 hrs to run 4 groups of ~100 COMIDs
+  
+  tarchetypes::tar_group_size(p1_nwm_comids_grp, 
+                               size = 100, # Set groups of 10 to map over NWM download
+                               tibble(nhd_comid = p1_nhdplus_comids)),
+  tar_target(p1_nwm_streamflow, download_NWMv2_streamflow(p1_nwm_comids_grp$nhd_comid),
+             pattern = map(p1_nwm_comids_grp))
 )
