@@ -14,6 +14,11 @@
 #' 
 download_NWMv2_streamflow <- function(comids, n_daily_pts = 4) {
   
+  # First, sort the COMIDs because the data returned from the NWM
+  # output will always return them in numeric order by COMID/feature_id
+  # and we need this order to match for when we create the output table.
+  comids <- sort(comids)
+  
   # Set start/end time of data available to grab (need the full range in order to 
   # appropriately set the index values). Then filter just to data from 2010-2018
   # because 9 years of hourly flow is enough to give us an appropriate median value.
