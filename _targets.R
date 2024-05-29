@@ -15,9 +15,11 @@ tar_option_set(
     'magick', # Needed for 7_Disseminate and `cowplot::draw_image()`
     'MESS',
     'nhdplusTools', # Need to have a specific version. TODO, update once its on CRAN https://github.com/DOI-USGS/nhdplusTools/issues/365#ref-commit-6b18b97
+    'paws.storage', # Needed to download NWM streamflow
     'pdp',
     'qs',
     'randomForest',
+    'Rarr', # Needed to download NWM streamflow; devtools::install_github(repo = 'grimbough/Rarr')
     'raster',
     'sbtools',
     'scico',

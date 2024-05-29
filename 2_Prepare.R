@@ -60,7 +60,11 @@ p2_targets <- list(
   # Then this Q data is filtered to only qualifying sites in `3_Filter`
   
   # Then, calculate static attributes of daily Q value per site
-  tar_target(p2_attr_flow, calculate_q_stats_per_site(p3_attr_q_qualified)),
+  tar_target(p2_attr_flow_nwis, calculate_q_stats_per_site(p3_attr_q_qualified)),
+  
+  # Instead of using NWIS streamflow, we will use NWM flow so that
+  # we can use our model later to predict to streams without gages
+  tar_target(p2_attr_flow_nwm, prep_nwm_flow(p1_nwm_streamflow, p1_nwis_site_nhd_comid_ALL_xwalk)),
   
   ###### ATTR DATA 2: Extract road salt application per site ######
   
@@ -130,7 +134,7 @@ p2_targets <- list(
   ###### ATTR DATA 4: Combine all static attributes into one table ######
   
   tar_target(p2_attr_all, combine_static_attributes(joinby = 'site_no',
-                                                    # p2_attr_flow,
+                                                    p2_attr_flow_nwm,
                                                     p2_streamorder,
                                                     p2_attr_basinArea %>% select(site_no, attr_areaCumulativeSqKm),
                                                     p2_attr_roadSalt_forModel,

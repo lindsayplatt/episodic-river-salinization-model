@@ -17,6 +17,28 @@ calculate_q_stats_per_site <- function(data_q) {
     summarize(attr_medianFlow = median(Flow, na.rm = TRUE))
 }
 
+#' @title Join NWM median streamflow to site numbers
+#' @description Simple processing to get median streamflow per NHD COMID to
+#' align with the site numbers we are using. Also, add the NHM scaling
+#' factor to get NHM flow values into m3/s.
+#' 
+#' @param nwm_streamflow a tibble of median streamflow with the columns 
+#' `nhd_comid` and `attr_medianFlowNWM`
+#' @param comid_site_xwalk a tibble with at least the columns `site_no` and 
+#' `nhd_comid`. Note that not all sites are mapped to a COMID and may be NA.
+#' 
+#' @return a tibble with the columns `site_no`, `attr_medianFlow`
+#'
+prep_nwm_flow <- function(nwm_streamflow, comid_site_xwalk) {
+  # This is stored in the `.zattrs` file under https://noaa-nwm-retro-v2-zarr-pds.s3.amazonaws.com/index.html#streamflow/
+  nhm_scaling_factor <- 0.009999999776482582
+  comid_site_xwalk %>% 
+    left_join(nwm_streamflow, by = 'nhd_comid') %>% 
+    select(site_no, attr_medianFlow = attr_medianFlowNWM) %>% 
+    filter(!is.na(attr_medianFlow)) %>% 
+    mutate(attr_medianFlow = round(attr_medianFlow*nhm_scaling_factor, 3))
+}
+
 #' @title Z-normalize a set of values
 #' @description Find the z-scores for a set of values. This assumes that the
 #' values passed in are already grouped appropriately prior to this function
