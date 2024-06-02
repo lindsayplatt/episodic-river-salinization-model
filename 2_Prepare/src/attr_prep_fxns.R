@@ -67,7 +67,9 @@ znorm <- function(ts){
 #' mapping all upstream comids to each COMID with an NWIS site. It should match
 #' the output of `identify_upstream_comids()`.
 #' @param comid_site_xwalk a tibble with at least the columns `site_no` and 
-#' `nhd_comid`. Note that not all sites are mapped to a COMID and may be NA.
+#' `nhd_comid`. Note that not all sites are mapped to a COMID and may be NA. If
+#' this argument is set to `NULL`, so site numbers are mapped and `nhd_comid` is 
+#' returned.
 #' 
 #' @return tibble with four columns `site_no`, `attr_areaSqKm`,
 #'  `attr_areaCumulativeSqKm`, `attr_areaRatio`, and `numNACatchments`. The ratio
@@ -82,7 +84,7 @@ calculate_catchment_areas <- function(polys_sf, comid_upstream_tbl, comid_site_x
     st_drop_geometry() %>% 
     select(nhd_comid_upstream = nhd_comid, area_sqkm = areasqkm)
   
-  comid_upstream_tbl %>% 
+  comid_catchment_info <- comid_upstream_tbl %>% 
     left_join(catchment_area_tbl, by = 'nhd_comid_upstream') %>% 
     # Per NHD COMID, calculate the area of *just* that catchment and
     # the area of all upstream catchments. 
@@ -91,10 +93,19 @@ calculate_catchment_areas <- function(polys_sf, comid_upstream_tbl, comid_site_x
               attr_areaCumulativeSqKm = sum(area_sqkm, na.rm=TRUE),
               attr_areaRatio = attr_areaSqKm / attr_areaCumulativeSqKm,
               numNACatchments = sum(is.na(area_sqkm))) %>% 
-    ungroup() %>% 
-    # Map these attributes from NHD COMIDs to NWIS sites
-    right_join(comid_site_xwalk, by = 'nhd_comid') %>%
-    select(site_no, attr_areaSqKm, attr_areaCumulativeSqKm, attr_areaRatio, numNACatchments)
+    ungroup() 
+  
+  if(!is.null(comid_site_xwalk)) {
+    comid_catchment_info_ready <- comid_catchment_info %>% 
+      # Map these attributes from NHD COMIDs to NWIS sites
+      right_join(comid_site_xwalk, by = 'nhd_comid') %>%
+      select(site_no, attr_areaSqKm, attr_areaCumulativeSqKm, attr_areaRatio, numNACatchments)
+  } else {
+    comid_catchment_info_ready <- comid_catchment_info %>% 
+      select(nhd_comid, attr_areaSqKm, attr_areaCumulativeSqKm, attr_areaRatio, numNACatchments)
+  }
+  
+  return(comid_catchment_info_ready)
 }
 
 #' @title Get area of each catchment and total upstream area, keep all upstream comids
@@ -189,7 +200,9 @@ aggregate_road_salt_per_poly <- function(road_salt_rast, polys_sf) {
 #' @param basin_areas a tibble with at least the columns `site_no`, `attr_areaSqKm`,
 #' and `attr_areaCumulativeSqKm` representing catchment and upstream basin total area.
 #' @param comid_site_xwalk a tibble with at least the columns `site_no` and 
-#' `nhd_comid`. Note that not all sites are mapped to a COMID and may be NA.
+#' `nhd_comid`. Note that not all sites are mapped to a COMID and may be NA. If
+#' this argument is set to `NULL`, so site numbers are mapped and `nhd_comid` is 
+#' returned.
 #' @param comid_upstream_tbl a tibble with the columns `nhd_comid` and `nhd_comid_upstream`
 #' mapping all upstream comids to each COMID with an NWIS site. It should match
 #' the output of `identify_upstream_comids()`.
@@ -209,18 +222,27 @@ map_catchment_roadSalt_to_site <- function(road_salt_comid, basin_areas, comid_s
     group_by(nhd_comid) %>% 
     summarize(roadSalt = road_salt_kgs[nhd_comid_upstream == nhd_comid],
               roadSaltCumulative = sum(road_salt_kgs, na.rm=TRUE),
-              .groups='keep')
+              .groups='keep') %>% 
+    ungroup()
 
-  comid_site_xwalk %>% 
-    # Now join the road salt data per catchment & by upstream catchment
-    left_join(comid_roadSalt, by = 'nhd_comid') %>% 
-    # Now do the same but for catchment area 
-    left_join(basin_areas, by = 'site_no') %>% 
+  join_col <- ifelse(is.null(comid_site_xwalk), 'nhd_comid', 'site_no')
+  
+  # Use the road salt data per catchment & by upstream catchment
+  comid_roadSalt_ready <- comid_roadSalt %>% {
+    if(!is.null(comid_site_xwalk)) {
+      # Now join in site_no to nhd_comid if xwalk is provided
+      right_join(., comid_site_xwalk, by = 'nhd_comid')
+    } else .
+  } %>% 
+    # Now join the catchment areas 
+    left_join(basin_areas, by = join_col) %>% 
     # Now calculate road salt per area
     mutate(attr_roadSaltPerSqKm = roadSalt / attr_areaSqKm,
            attr_roadSaltCumulativePerSqKm = roadSaltCumulative / attr_areaCumulativeSqKm,
            attr_roadSaltRatio = roadSalt / roadSaltCumulative) %>% 
-    dplyr::select(site_no, attr_roadSaltPerSqKm, attr_roadSaltCumulativePerSqKm, attr_roadSaltRatio)
+    dplyr::select(one_of(join_col), attr_roadSaltPerSqKm, attr_roadSaltCumulativePerSqKm, attr_roadSaltRatio)
+  
+  return(comid_roadSalt_ready)
 }
 
 #' @title Pivot downloaded NHD attributes from long to wide
@@ -230,7 +252,8 @@ map_catchment_roadSalt_to_site <- function(road_salt_comid, basin_areas, comid_s
 #' 
 #' @param nhd_attribute_table a tibble of attribute values for each COMID with  
 #' the columns `nhd_comid`, `nhd_attr_id`, `nhd_attr_val`, and `percent_nodata`
-#' @param comid_site_xwalk a tibble with the columns `site_no`, `nhd_comid`, `with_retry`
+#' @param comid_site_xwalk a tibble with the columns `site_no`, `nhd_comid`, 
+#' `with_retry`. If `NULL`, the id column will be `nhd_comid`.
 #' 
 #' @return tibble with the columns `site_no` and any number of columns containing
 #' NHD+ static catchment attributes, most prefixed with `attr_[attribute name]`. Any
@@ -238,17 +261,19 @@ map_catchment_roadSalt_to_site <- function(road_salt_comid, basin_areas, comid_s
 #' function renaming step. You could add it, or leave it as-is. 
 #' 
 prepare_nhd_attributes <- function(nhd_attribute_table, comid_site_xwalk) {
+  id_col <- ifelse(is.null(comid_site_xwalk), 'nhd_comid', 'site_no')
   
   nhd_attribute_table %>%
     # Pivot the NHD attributes to be columns
     pivot_wider(id_cols = nhd_comid, 
                 names_from = nhd_attr_id, 
-                values_from = nhd_attr_val) %>% 
-    # Join *into* the site number by COMID
-    right_join(comid_site_xwalk, by = 'nhd_comid') %>% 
-    # Keep only the site_no and NHD attribute columns
-    dplyr::select(site_no, everything(), 
-                  -nhd_comid, -with_retry) %>% 
+                values_from = nhd_attr_val) %>% {
+      if(!is.null(comid_site_xwalk)) {
+        # Join *into* the site number by COMID
+        right_join(., comid_site_xwalk, by = 'nhd_comid') 
+      } else .
+        
+    } %>% 
     
     # Operate the following sums/means/etc by row
     rowwise() %>% 
@@ -274,7 +299,7 @@ prepare_nhd_attributes <- function(nhd_attribute_table, comid_site_xwalk) {
     
     # Calculate snow (in mm) from precip total
     # mutate(attr_annualSnow = CAT_PPT7100_ANN*CAT_PRSNOW/100) %>% 
-  mutate(attr_annualSnow = sum(c_across(contains("PPT7100_ANN") | contains("PRSNOW")))/100) %>% 
+    mutate(attr_annualSnow = sum(c_across(contains("PPT7100_ANN") | contains("PRSNOW")))/100) %>% 
     
     # Calculate average winter air temperature from monthly averages
     # mutate(attr_winterAirTemp = mean(c(CAT_TAV7100_DEC, CAT_TAV7100_JAN,
@@ -301,7 +326,8 @@ prepare_nhd_attributes <- function(nhd_attribute_table, comid_site_xwalk) {
     ))) %>% 
     
     # Select only the final attributes, which are those prefixed with `attr_`
-    select(site_no, starts_with('attr_'))
+    # Keep only the site_no and those final NHD attribute columns
+    select(one_of(id_col), starts_with('attr_'))
   
 }
 
