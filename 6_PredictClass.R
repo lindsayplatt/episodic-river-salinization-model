@@ -137,9 +137,11 @@ p6_targets <- list(
                                                                        gpkg_layer = 'NHDFlowline_Network')),
   
   tar_target(p6_predict_episodic, p6_attr_all %>%
-               mutate(pred = predict(p5_rf_model_optimized, .)) %>%
+               mutate(pred = as.character(predict(p5_rf_model_optimized, .))) %>%
                replace_na(list(pred = 'Not classified')) %>% 
-               select(nhd_comid, pred)),
+               mutate(pred_fct = factor(pred, ordered = TRUE, 
+                                        levels = c('Episodic', 'Not episodic', 'Not classified'))) %>% 
+               select(nhd_comid, pred, pred_fct)),
   
   # Make a map of predicted classes per defined river outlet
   tar_target(p6_river_comid_xwalk_grp, p6_river_upstream_comids %>% 
@@ -156,10 +158,10 @@ p6_targets <- list(
       left_join(p6_predict_episodic, by = 'nhd_comid') %>% 
       ggplot() +
       ggspatial::annotation_map_tile(type = 'cartolight', zoom = 10) +
-      geom_sf(aes(color = pred)) +
+      geom_sf(aes(color = pred_fct)) +
       scale_color_manual(values = c(Episodic = '#c28e0d',
                                     `Not episodic` = '#005271',
-                                    `Not classified` = 'grey40'),
+                                    `Not classified` = 'grey50'),
                          name = 'Predicted\nclass') +
       ggtitle(sprintf('Predicted class for %s', unique(p6_river_comid_xwalk_grp$river)))
     ggsave(file_out, river_predict_map, width = 6.5, height = 6.5, units = 'in', dpi = 500)
