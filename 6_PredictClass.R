@@ -8,10 +8,21 @@ p6_targets <- list(
   
   # Setup a table with rivers and the location of their outlets
   tar_target(p6_river_outlet_latlon, 
-             tibble(river = c('Yahara River', 'Rock River', 'Maumee River'),
-                    river_fname = c('yahara', 'rock', 'maumee'), 
-                    lat = c(42.809, 41.481570, 41.692059), 
-                    lon = c(-89.1245, -90.613621, -83.469831))),
+             tibble(river = c('Yahara River', 
+                              # Rock river adds SO MANY upstream comids (~80k!!)
+                              # if I pick the outlet right before the Mississippi, so I 
+                              # chose right before WI border (Rockford) instead (~3k)
+                              'Rock River', 
+                              'Maumee River'),
+                    river_fname = c('yahara', 
+                                    'rock', 
+                                    'maumee'), 
+                    lat = c(42.809, 
+                            42.496930, #41.481570, (Rock right before Mississippi) 
+                            41.692059), 
+                    lon = c(-89.1245, 
+                            -89.041932, #-90.613621, (Rock right before Mississippi) 
+                            -83.469831))),
   
   # Convert the river outlets in an sf object (leave as a list since previous
   # targets experience did not play nicely with mapping over sf objects)
