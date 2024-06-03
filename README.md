@@ -23,14 +23,14 @@ The pipeline is broken into 7 different phases:
 * `3_Filter` applies all of our criteria to remove sites that are not up to our minimum standards and/or are sites with unexpected features (tidal, in a really high agricultural area, don't have an associated NHD+ catchment area, etc).
 * `4_EpisodicSalinization` applies an algorithm that has been used to identify storms by finding steep peaks in a hydrograph to the specific conductance time series in order to identify winter storms where road salts are washed into streams and cause sharp peaks (similar to storm hydrographs). In the end, this phase identifies sites with specific conductance data that exhibit this episodic behavior.
 * `5_DefineCharacteristics` uses the information gathered in `4_EpisodicSalinization` and applies random forest models to these categorizations with the collection of static attributes prepared and filtered in `2_Prepare` and `3_Filter` to define the attributes and values that are important for determining a site's category.
-* `6_PredictClass` TODO: PLACEHOLDER BUT SHOULD BE APPLYING THE RF MODEL FORWARD
+* `6_PredictClass` uses the optimized model and defined outlet locations to download/prepare attributes for ALL COMIDs within the upstream watershed of these outlet locations to predict whether they are likely to be episodic or not. TODO: APPLY TO MORE THAN JUST YAHARA, ROCK, AND MAUMEE.
 * `7_Disseminate` takes all of the model input output to generate figures and explain the results. The figures generated in this phase were all used in the manuscript. Three datasets are also saved in this step and represent the final salinization signature classifications for each site, values for all 16 static attributes, and metadata for all 16 attributes. The first two datasets were used by the random forest models to create final results explaining which characteristics were important for each of the salinization signatures.
 
 ### Pipeline setup
 
 Run the following command to make sure you have all the necessary packages before trying to build the pipeline.
 
-# TODO: mac install issues?
+TODO: mac install issues?
 
 ``` r
 install.packages(c(
