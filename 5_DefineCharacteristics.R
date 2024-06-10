@@ -29,7 +29,7 @@ p5_targets <- list(
   tar_target(p5_hypertuned_params, optimize_hyperparameters(p5_rf_model_tuning)),
   
   # Now run the hypertuned model 
-  tar_target(p5_rf_model_hypertuned, apply_randomforest(p5_site_attr_rf, p5_hypertuned_params$mtry, p5_hypertuned_params$ntree)),
+  tar_target(p5_rf_model_hypertuned, apply_randomforest(p5_site_attr_rf, p5_hypertuned_params$mtry, p5_hypertuned_params$ntree)$model),
   
   # Perform feature selection by only choosing the top 50% important predictors
   tar_target(p5_site_attr_rf_optimal, optimize_attrs(site_attr_data = p5_site_attr_rf,
@@ -42,10 +42,15 @@ p5_targets <- list(
   
   ###### Run optimal RF ######
   
-  tar_target(p5_rf_model_optimized, apply_randomforest(p5_site_attr_rf_optimal, p5_finetuned_params$mtry, p5_finetuned_params$ntree)),
+  # Train and assess prediction accuracy of an RF model using the optimized parameters and top attributes
+  tar_target(p5_rf_model_optimized_all, apply_randomforest(p5_site_attr_rf_optimal, p5_finetuned_params$mtry,
+                                                           p5_finetuned_params$ntree, do_split = TRUE)),
+  tar_target(p5_rf_model_optimized, p5_rf_model_optimized_all$model),
   
   ###### Evaluate RF output ######
   
+  tar_target(p5_rf_testpreds, p5_rf_model_optimized_all$test_results),
+  tar_target(p5_rf_accuracy, p5_rf_model_optimized_all$accuracy),
   tar_target(p5_rf_oob, mean(p5_rf_model_optimized$err.rate[,'OOB'])),
   tar_target(p5_rf_attr_importance, calculate_attr_importance(p5_rf_model_optimized)),
   tar_target(p5_rf_attr_importance_viz, visualize_attr_importance1(rf_model_importance = p5_rf_attr_importance)),
