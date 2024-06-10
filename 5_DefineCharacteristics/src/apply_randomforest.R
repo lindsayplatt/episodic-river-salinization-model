@@ -2,6 +2,9 @@
 #' @title Run a random forest model
 #' @description Using the `randomForest::randomForest()` function, run a 
 #' random forest model for the given set of site attributes and site categories.
+#' This function has the option (`do_split`) to internally divide the data into 
+#' an 80/20 train/test split in order to build and then assess accuracy of the 
+#' random forest model.
 #' 
 #' @param site_attr_data a tibble with the columns `site_category_fact` and any
 #' number of columns that give static attributes (not prefixed with `attr_`)
@@ -10,23 +13,55 @@
 #' @param ntree the number of trees to try in the random forest; defaults to 500.
 #' @param seed a numeric value to use in `set.seed()` to ensure reproducibility; 
 #' defaults to 24
+#' @param do_split a logical value indicating whether the data should be split
+#' into test/train. Defaults to `FALSE` with the returned `test_table` as an
+#' empty tibble and the returned `accuracy` as an `NA` value.
 #' 
-#' @returns an list object of class randomForest, see `?randomForest::randomForest`
+#' @returns an list object with twp items, `model` (containing the actual random
+#' forest mdoel with class randomForest, see `?randomForest::randomForest`),  
+#' `test_results` (a table with the test data and resulting predictions, empty
+#' table if `do_split` is FALSE), and `accuracy` containing the percent times 
+#' the model correctly predicted the class for the test data.
 #' 
-apply_randomforest <- function(site_attr_data, mtry = NULL, ntree = NULL, seed = 24) {
+apply_randomforest <- function(site_attr_data, mtry = NULL, ntree = NULL, seed = 24,
+                               do_split = FALSE) {
   
   # Use the default for mtry in `randomForest()` if passed in as NULL here
   if(is.null(mtry)) mtry <- floor(sqrt(ncol(site_attr_data) - 1))
   
   set.seed(seed)
-  rfMod = randomForest(
+  
+  if(do_split) {
+    # Split into test/train
+    trainIndex <- sample(1:nrow(site_attr_data), 0.8*nrow(site_attr_data))
+    train_data <- site_attr_data[trainIndex, ]
+    test_data <- site_attr_data[-trainIndex, ]
+  } else {
+    # Use all data to train the model
+    train_data <- site_attr_data
+  }
+  
+  # Train the model
+  rfMod <- randomForest(
     site_category_fact ~ .,
-    data = site_attr_data,
+    data = train_data,
     mtry = mtry, 
     importance = TRUE)
   
-  return(rfMod)
+  if(do_split) {
+    # Test the model
+    predictions <- predict(rfMod, newdata = test_data)
+    predictions_tbl <- test_data %>% 
+      mutate(site_category_predicted = predictions, 
+             .after = site_category_fact)
+    rfAccuracy <- mean(predictions == test_data$site_category_fact)
+  } else {
+    # If there was no test/train split, we cannot separately evaluate accuracy
+    predictions_tbl <- tibble()
+    rfAccuracy <- NA
+  }
   
+  return(list(model = rfMod, test_results = predictions_tbl, accuracy = rfAccuracy))
 }
 
 #' @title Tune random forest hyperparameters
