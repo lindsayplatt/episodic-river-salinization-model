@@ -16,17 +16,13 @@
 #' @param min_perc_peaks_winter a single numeric value indicating the percentage of 
 #' time the peak values should occur in winter to qualify the site as an episodic
 #' winter salting site. Given as a fraction; defaults to `0.50` (or 50%).
-#' @param min_perc_diff a single numeric value indicating the minimum percent  
-#' difference between average winter and non-winter specific conductance to 
-#' qualify the site as an episodic winter salting site. Given as a fraction; 
-#' defaults to `0.10` (or 10%).
 #' @param min_perc_winter_higher a single numeric value indicating the percentage
 #' of years that the maximum annual specific conductance for a particular site
 #' should occur during the winter in order to qualify as an episodic winter
 #' salting site. Given as a fraction; defaults to `0.75` (or 75%).
 #' 
 summarize_salt_peaks <- function(ts_peak_data, winter_months = c(12,1,2,3), 
-                                 min_perc_peaks_winter = 0.50, min_perc_diff = 0.10, 
+                                 min_perc_peaks_winter = 0.50,  
                                  min_perc_winter_higher = 0.75) {
   
   # Calculate maximum SpC by site, year, and season. Then determine annual 
@@ -107,8 +103,6 @@ summarize_salt_peaks <- function(ts_peak_data, winter_months = c(12,1,2,3),
     mutate(is_salt_site = 
              # More than `min_perc_peaks_winter` percent of global peaks must occur in winter
              peaks_perc_winterYes > min_perc_peaks_winter & 
-             # The non-winter and winter mean SpC must be more than `min_perc_diff` percent different
-             # sc_perc_diff > min_perc_diff &
              winterPeaks > 6 &
              peakSpc >= 200 + meanSpc &
              # Maximum annual SpC should occur in winter more than `` percent of the years

@@ -26,7 +26,6 @@ p4_targets <- list(
   tar_target(p4_ts_sc_peak_summary, 
              summarize_salt_peaks(p4_ts_sc_peaks, 
                                   min_perc_peaks_winter = 0.35, 
-                                  # min_perc_diff = 0.10,
                                   min_perc_winter_higher = 0.65)),
   tar_target(p4_episodic_sites, filter(p4_ts_sc_peak_summary, is_salt_site)$site_no)
   
