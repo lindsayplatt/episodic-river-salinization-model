@@ -17,7 +17,7 @@ p4_targets <- list(
                             date_colname = 'dateTime',
                             param_colname = 'SpecCond_norm',
                             sb_pk_thresh = 0.000005,
-                            sf_pk_thresh = 0.1) # TODO: THIS SHOULD JUST BE 0 OR -0.1!
+                            sf_pk_thresh = 0)
       ) %>% bind_rows()
   }),
   
