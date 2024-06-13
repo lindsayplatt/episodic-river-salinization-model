@@ -25,8 +25,8 @@ p4_targets <- list(
   # our criteria for exhibiting "episodic" patterns in winter.
   tar_target(p4_ts_sc_peak_summary, 
              summarize_salt_peaks(p4_ts_sc_peaks, 
-                                  min_perc_peaks_winter = 0.35, 
-                                  min_perc_winter_higher = 0.65)),
-  tar_target(p4_episodic_sites, filter(p4_ts_sc_peak_summary, is_salt_site)$site_no)
+                                  num_peaks_per_year = 3, 
+                                  spec_cond_buffer = 200)),
+  tar_target(p4_episodic_sites, filter(p4_ts_sc_peak_summary, is_episodic)$site_no)
   
 )
