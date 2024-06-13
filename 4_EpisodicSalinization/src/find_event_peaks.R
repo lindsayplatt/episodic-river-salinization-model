@@ -23,7 +23,7 @@
 #' 
 find_event_peaks <- function(ts_data, date_colname, param_colname, sb_pk_thresh = 0.000001, sf_pk_thresh = 0){
   
-  ts_data <- ts_data %>% 
+  ts_peaks <- ts_data %>% 
     # Convert to seconds
     mutate(Days := as.numeric(as.Date(!!as.name(date_colname)))) %>%
     # Rename the param_colname column to help code stay clean
@@ -40,66 +40,7 @@ find_event_peaks <- function(ts_data, date_colname, param_colname, sb_pk_thresh 
     # and the slope forward is negative, flag it as a peak
     ##-default sb_pk_thresh 0.000001
     ##-default sf_pk_thresh 0
-    mutate(peak_flag = slope_bkwd > sb_pk_thresh & slope_fwd < sf_pk_thresh) %>% 
-    # Prepare dataset to have the `event_flag` added (which denotes which values
-    # are a part of a specific "event" aka the rise/fall of a peak)
-    mutate(event_flag = NA)
-  
-  # Keeping the event identification code as-is for now.
-  # FUTURE IMPROVEMENT: update these nested for loops for easier readability?
-  # TODO: I ACTUALLY DON'T THINK I NEED THE "EVENT" code. Just need the peaks.
-  
-  ##-Flag the changes in derivatives, events is the row of single site which have events
-  events <- which(ts_data$peak_flag)
-  ##-if there are no events return ts_data
-  if(length(events) > 0){
-    
-    ##-within single site, make a column that will signal which observations belong to which peak
-    ##-this will turn into the rising and falling limbs
-    
-    for(i in 1:length(events)){
-      k <- events[i]
-      ##-the while loop goes forward in time until the slope forward is no longer negative
-      while(ts_data$slope_fwd[k] <0){
-        ##-and labels that with the event number (i) and makes it positive (+)
-        ts_data$event_flag[k] <- i
-        k <- k +1
-        
-        ##-if the last row of single sites is an event peak then move on
-        if(k == nrow(ts_data)){
-          break
-        }else{
-        }
-      }
-      
-      ##-now step backward in time for the falling limb
-      ##-starting with the point directly before the peak
-      j <- events[i]-1
-      ##-if it's the first two data points in the site don't bother
-      if(j == 1|j == 0){
-        next
-      }else{
-        ##-as you step backwards label the days with the event number (i) and make it negative (-)
-        ##-this time to indicate it is the rising limb (before the peak)
-        while(ts_data$slope_bkwd[j] > 0){
-          ts_data$event_flag[j] <- -1*i
-          ##-label j-1 as part of the rising limb too because j-1 won't be grouped with the rising limb
-          ##-if it has a negative slope on the next step going back
-          ts_data$event_flag[j-1] <- -1*i
-          j <- j - 1
-          ##-if i is 1,2 or 3 in the data frame forget about it
-          if(j == 2| j == 1| j == 0){
-            break
-          }else{
-          }
-        }
-      }
-    }
-  }
-  
-  # Edit peak events to only include days where SpC was above the 75th percentile
-  ts_peaks <- ts_data %>%
-    mutate(peak_flag = peak_flag & event_flag > 0 & SpecCond > quantile(ts_data$SpecCond, 0.75)) %>%
+    mutate(peak_flag = slope_bkwd >= sb_pk_thresh & slope_fwd <= sf_pk_thresh) %>% 
     select(-Days, -slope_bkwd, -slope_fwd)
   
   return(ts_peaks)
