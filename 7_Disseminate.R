@@ -133,6 +133,28 @@ p7_targets <- list(
                                       p7_site_categories, p1_conus_state_cds), 
              format='file'),
   
+  ##### Plot comparing episodic criteria #####
+  
+  tar_target(p7_episodic_criteria_png, {
+    out_file <- '7_Disseminate/out/episodic_criteria.png'
+    p <- p4_ts_sc_peak_summary %>% 
+      mutate(is_episodic = ifelse(is_episodic, 'Episodic', 'Not episodic')) %>% 
+      ggplot(aes(x = not_winter, y = winter, fill = is_episodic)) +
+      geom_abline(slope = 1, intercept = 0) +
+      geom_point(alpha = 0.5, size=2, shape = 21) +
+      scale_fill_manual(values = c(`Not episodic` = '#005271', Episodic = '#c28e0d'),
+                        name = NULL) +
+      theme_bw() +
+      theme(legend.position = 'bottom',
+            panel.grid = element_blank(),
+            axis.title.x = element_text(vjust = -2),
+            axis.title.y = element_text(vjust = 2)) +
+      xlab('Non-Winter Median Peak SpC') +
+      ylab('Winter Median Peak SpC')
+    ggsave(out_file, p, width = 3.25, height = 3.25, dpi = 500, bg='white')
+    return(out_file)
+  }),
+  
   ##### Save plots of episodic behavior for each site #####
   
   tar_target(p7_episodic_plotlist, create_episodic_plotlist(p3_ts_sc_qualified, p4_episodic_sites)),
