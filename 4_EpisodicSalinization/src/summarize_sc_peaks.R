@@ -48,7 +48,7 @@ summarize_salt_peaks <- function(ts_peak_data, winter_months = c(12,1,2,3),
     
     # Now calculate median SpC per site per season using only those top peaks
     group_by(site_no, season) %>% 
-    summarize(medianSpC = median(SpecCond, na.rm=TRUE), .groups='keep') %>% 
+    summarize(medianSpC = mean(SpecCond, na.rm=TRUE), .groups='keep') %>% 
     ungroup() %>% 
     
     # Pivot so that each site has a row and each season has a column 
