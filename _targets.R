@@ -13,6 +13,7 @@ tar_option_set(
     'GGally', # Needed for `ggcorr()`
     'ggspatial', # Needed for mapping predicted flowlines
     'httr',
+    'hydroloom', # Needed for finding upstream COMIDs
     'magick', # Needed for 7_Disseminate and `cowplot::draw_image()`
     'MESS',
     'nhdplusTools', # Need to have a specific version. TODO, update once its on CRAN https://github.com/DOI-USGS/nhdplusTools/issues/365#ref-commit-6b18b97

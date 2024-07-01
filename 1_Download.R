@@ -269,6 +269,29 @@ p1_targets <- list(
              format = 'file', error = "continue"),
   # tar_target(p1_nhdplus_catchments_gpkg, list.files('1_Download/out_nhdplus/',full.names = T))
   
+  # Download the full, national NHD+ flowlines and save as a local file
+  tar_target(p1_nhdplus_gdb_7z, {
+    download_nhdplusv2("./1_Download/tmp/")
+    # The NHD+ function doesn't return the filepath, so have to do it manually
+    return('1_Download/tmp/NHDPlusV21_NationalData_Seamless_Geodatabase_Lower48_07.7z')
+  }, format='file'),
+  
+  # Unzip flowlines GDB *to a new folder* (this part is key)
+  # tar_target(p1_nhdplus_gdb, {
+  #   unzip(p1_nhdplus_gdb_7z,
+  #         exdir = '1_Download/out_nhdplus')
+  #   return('1_Download/out_nhdplus/NHDPlusNationalData/NHDPlusV21_National_Seamless_Flattened_Lower48.gdb')
+  # }, format = 'file'),
+  # TODO: I HAD TO MANUALLY UNZIP AND MOVE TO THIS LOCATION. 
+  # COULDN'T GET THE CODE ABOVE TO WORK IN THE PIPELINE.
+  tar_target(p1_nhdplus_gdb, '1_Download/out_nhdplus/NHDPlusNationalData/NHDPlusV21_National_Seamless_Flattened_Lower48.gdb',
+             format = 'file'),
+  
+  # Load the national flowlines layer as an sf object and drop the vertical attributes
+  tar_target(p1_nhdplus_flowlines_sf, 
+             st_zm(st_read(p1_nhdplus_gdb, layer = 'NHDFlowline_Network'))),
+  # TODO: LOAD THE CATCHMENT POLYGONS, TOO? THEN FILTER IN P6 rather than download.
+  
   ##### Download National Water Model streamflow #####
   
   # NOAA National Water Model CONUS Retrospective Dataset was accessed 
