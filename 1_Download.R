@@ -288,9 +288,17 @@ p1_targets <- list(
              format = 'file'),
   
   # Load the national flowlines layer as an sf object and drop the vertical attributes
+  # Also, remove any flowline with a catchment area of zero. These indicate flowlines that
+  # will not have a polygon and therefore, will not work for summarizing road salt.
+  # This is kind of a "process" step but there is no point to saving more data than
+  # we need to.
   tar_target(p1_nhdplus_flowlines_sf, 
-             st_zm(st_read(p1_nhdplus_gdb, layer = 'NHDFlowline_Network'))),
-  # TODO: LOAD THE CATCHMENT POLYGONS, TOO? THEN FILTER IN P6 rather than download.
+             st_read(p1_nhdplus_gdb, layer = 'NHDFlowline_Network') %>% 
+               st_zm() %>% filter(AreaSqKM > 0)),
+  # Load the national catchments layer as an sf object and rename `FEATUREID` to `nhd_comid`
+  tar_target(p1_nhdplus_catchments_sf, 
+             st_read(p1_nhdplus_gdb, layer = 'CatchmentSP') %>% 
+               rename(nhd_comid = FEATUREID, areasqkm = AreaSqKM)),
   
   ##### Download National Water Model streamflow #####
   
