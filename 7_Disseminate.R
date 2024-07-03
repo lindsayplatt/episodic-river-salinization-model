@@ -121,8 +121,9 @@ p7_targets <- list(
                group_by(region) %>% 
                tar_group(),
              iteration = 'group'),
+  # TODO: This needs to be adjusted to look better once we are doing more than one state!
   tar_target(p7_predict_episodic_map_png, {
-    file_out <- sprintf('7_Disseminate/out/Fig3_predict_map_%s.png', 
+    file_out <- sprintf('7_Disseminate/out/Fig4_predict_map_%s.png', 
                         unique(p7_comid_xwalk_grp$region_fname))
     region_predict_map <- p6_state_flowlines_sf %>%
       right_join(p7_comid_xwalk_grp, by = 'nhd_comid') %>% 
@@ -135,7 +136,7 @@ p7_targets <- list(
                                     `Not classified` = 'grey50'),
                          name = 'Predicted\nclass') +
       ggtitle(sprintf('Predicted class for %s', unique(p7_comid_xwalk_grp$region)))
-    ggsave(file_out, region_predict_map, width = 3.25, height = 3.25, units = 'in', dpi = 500)
+    ggsave(file_out, region_predict_map, width = 3.25, height = 3.25, units = 'in', dpi = 250)
     return(file_out)
   }, pattern = map(p7_comid_xwalk_grp), format = 'file'),
   
