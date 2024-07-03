@@ -134,10 +134,10 @@ p7_targets <- list(
                                     `Not episodic` = p7_color_not_episodic,
                                     `Not classified` = 'grey50'),
                          name = 'Predicted\nclass') +
-      ggtitle(sprintf('Predicted class for %s', unique(p6_comid_xwalk_grp$region)))
+      ggtitle(sprintf('Predicted class for %s', unique(p7_comid_xwalk_grp$region)))
     ggsave(file_out, region_predict_map, width = 3.25, height = 3.25, units = 'in', dpi = 500)
     return(file_out)
-  }, pattern = map(p6_comid_xwalk_grp), format = 'file'),
+  }, pattern = map(p7_comid_xwalk_grp), format = 'file'),
   
   ##### Supplemental figures #####
   
