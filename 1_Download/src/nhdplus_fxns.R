@@ -282,3 +282,19 @@ identify_upstream_comids <- function(comid_in) {
   tibble(nhd_comid = comid_in,
          nhd_comid_upstream = comids_ut)
 }
+
+#' @title Identify COMIDs given a polygon
+#' @description Use `nhdplusTools` functions to get COMIDs for any one polygon
+#' 
+#' @param aoi_sf a single sf polygon to use for querying NHD+
+#' 
+#' @return a tibble with COMIDs that fall within the polygon given and `toid`
+#' specifying the node that they drain to (in order to work with `hydroloom` fxns).
+#' 
+identify_comids_aoi <- function(aoi_sf) {
+  get_nhdplus(AOI = aoi_sf, realization = "outlet") %>% 
+    # Remove COMIDs from upstream list if they don't have an area (won't be
+    # useful for our downstream purposes because it doesn't have a catchment)
+    filter(areasqkm > 0) %>% 
+    select(comid, toid = tonode) 
+}

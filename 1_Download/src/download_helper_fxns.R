@@ -42,3 +42,55 @@ download_file_from_url <- function(out_file, url_in) {
   download.file(url_in, destfile = out_file)
   return(out_file)
 }
+
+#' @title Identify executable path for 7z program
+#' @description No matter the operating system, this function
+#' looks for the 7z executable file and returns the path. It will 
+#' throw an error if it doesn't find one and prompt the user to 
+#' install the program. This was built with the help of ChatGPT.
+#' 
+#' @return a filepath specifying the location of the `7z.exe` file
+#' 
+find_7z <- function() {
+  
+  # Define common paths for 7z executable
+  possible_paths <- list(
+    windows = c("C:/Program Files/7-Zip/7z.exe",
+                "C:/Program Files (x86)/7-Zip/7z.exe"),
+    mac = c("/usr/local/bin/7z", "/opt/homebrew/bin/7z"),
+    linux = c("/usr/bin/7z", "/usr/local/bin/7z")
+  )
+  
+  # Determine the OS
+  os <- .Platform$OS.type
+  if (os == "windows") {
+    for (path in possible_paths$windows) {
+      if (file.exists(path)) {
+        return(normalizePath(path))
+      }
+    }
+  } else if (os == "unix") {
+    # Check if running on Mac or Linux
+    if (system("uname", intern = TRUE) == "Darwin") {
+      for (path in possible_paths$mac) {
+        if (file.exists(path)) {
+          return(normalizePath(path))
+        }
+      }
+    } else {
+      for (path in possible_paths$linux) {
+        if (file.exists(path)) {
+          return(normalizePath(path))
+        }
+      }
+    }
+  }
+  
+  # If not found in common paths, try using 'which' command
+  which_7z <- system("which 7z", intern = TRUE)
+  if (nchar(which_7z) > 0 && file.exists(which_7z)) {
+    return(normalizePath(which_7z))
+  }
+  
+  stop("7z executable not found. Please ensure it is installed and accessible in your PATH.")
+}

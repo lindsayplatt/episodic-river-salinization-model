@@ -269,6 +269,40 @@ p1_targets <- list(
              format = 'file', error = "continue"),
   # tar_target(p1_nhdplus_catchments_gpkg, list.files('1_Download/out_nhdplus/',full.names = T))
   
+  # Download the full, national NHD+ flowlines and save as a local file
+  tar_target(p1_nhdplus_gdb_7z, {
+    download_nhdplusv2("./1_Download/tmp/")
+    # The NHD+ function doesn't return the filepath, so have to do it manually
+    return('1_Download/tmp/NHDPlusV21_NationalData_Seamless_Geodatabase_Lower48_07.7z')
+  }, format='file'),
+  
+  # You will need the 7-Zip program to unzip the file from NHDPlus
+  # On Windows, the 7z executable is typically available in `C:/Program Files/7-Zip/`
+  # On a Mac, the 7z executable is typically available in `/usr/local/bin/7z`
+  tar_target(p1_path_7z, find_7z()), 
+  
+  # Unzip flowlines GDB *to a new folder* (this part is key)
+  tar_target(p1_nhdplus_gdb, {
+    zip_file <- p1_nhdplus_gdb_7z
+    dest_dir <- '1_Download/out_nhdplus'
+    dest_file <- 'NHDPlusNationalData/NHDPlusV21_National_Seamless_Flattened_Lower48.gdb'
+    system2(p1_path_7z, args = c("x", zip_file, paste0("-o", dest_dir), '-aoa'))
+    return(file.path(dest_dir, dest_file))
+  }, format = 'file'),
+  
+  # Load the national flowlines layer as an sf object and drop the vertical attributes
+  # Also, remove any flowline with a catchment area of zero. These indicate flowlines that
+  # will not have a polygon and therefore, will not work for summarizing road salt.
+  # This is kind of a "process" step but there is no point to saving more data than
+  # we need to.
+  tar_target(p1_nhdplus_flowlines_sf, 
+             st_read(p1_nhdplus_gdb, layer = 'NHDFlowline_Network') %>% 
+               st_zm() %>% filter(AreaSqKM > 0)),
+  # Load the national catchments layer as an sf object and rename `FEATUREID` to `nhd_comid`
+  tar_target(p1_nhdplus_catchments_sf, 
+             st_read(p1_nhdplus_gdb, layer = 'CatchmentSP') %>% 
+               rename(nhd_comid = FEATUREID, areasqkm = AreaSqKM)),
+  
   ##### Download National Water Model streamflow #####
   
   # NOAA National Water Model CONUS Retrospective Dataset was accessed 

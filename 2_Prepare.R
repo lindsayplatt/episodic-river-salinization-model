@@ -124,14 +124,14 @@ p2_targets <- list(
                                                           p1_sb_transmissivity_csv,
                                                           p3_nwis_site_nhd_comid_xwalk)),
   
-  ####### Get stream order for every comid ##########
+  ####### ATTR DATA 4: Get stream order for every comid ##########
   tar_target(p2_streamorder, get_nhdplus(comid = p1_nhdplus_comids) %>% 
                               select(nhd_comid = comid, streamorde) %>% 
                               st_drop_geometry() %>% 
                               left_join(p3_nwis_site_nhd_comid_xwalk) %>% 
                               select(site_no, attr_streamorder = streamorde)),
   
-  ###### ATTR DATA 4: Combine all static attributes into one table ######
+  ###### ATTR DATA 5: Combine all static attributes into one table ######
   
   tar_target(p2_attr_all, combine_static_attributes(joinby = 'site_no',
                                                     p2_attr_flow_nwm,

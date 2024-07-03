@@ -2,66 +2,113 @@
 # predict whether a stream is episodic or not episodic based
 # on its associated attributes 
 
+source('6_PredictClass/src/navigate_nhdplus_network.R') 
+
 p6_targets <- list(
   
-  ##### Declare and identify the downstream-most COMID for a set of watersheds #####
+  ##### Declare COMIDs and their upstream COMIDs #####
   
-  # Setup a table with rivers and the location of their outlets
-  tar_target(p6_river_outlet_latlon, 
-             tibble(river = c('Yahara River', 
-                              # Rock river adds SO MANY upstream comids (~80k!!)
-                              # if I pick the outlet right before the Mississippi, so I 
-                              # chose right before WI border (Rockford) instead (~3k)
-                              'Rock River', 
-                              'Maumee River'),
-                    river_fname = c('yahara', 
-                                    'rock', 
-                                    'maumee'), 
-                    lat = c(42.809, 
-                            42.496930, #41.481570, (Rock right before Mississippi) 
-                            41.692059), 
-                    lon = c(-89.1245, 
-                            -89.041932, #-90.613621, (Rock right before Mississippi) 
-                            -83.469831))),
+  ###### First, use states to identify a set of COMIDs ######
   
-  # Convert the river outlets in an sf object (leave as a list since previous
-  # targets experience did not play nicely with mapping over sf objects)
-  tar_target(p6_river_outlet_sf_list, 
-             st_as_sf(p6_river_outlet_latlon, 
-                      coords = c('lon', 'lat'),
-                      crs = 4326), 
-             pattern = map(p6_river_outlet_latlon),
-             iteration = 'list'),
+  # Setup states as an sf polygon
+  tar_target(p6_states, 'MN'),
+  tar_target(p6_state_sf, usmap::us_map(include = p6_states) %>%
+               st_as_sf(coords = c('x', 'y'),
+                        crs = usmap::usmap_crs()) %>%
+               st_transform(crs = 4326)),
   
-  # For each river outlet, identify the COMID
-  tar_target(p6_river_outlet_comid, 
-             tibble(river = p6_river_outlet_sf_list$river,
-                    river_fname = p6_river_outlet_sf_list$river_fname,
-                    nhd_comid = discover_nhdplus_id(p6_river_outlet_sf_list)),
-             pattern = map(p6_river_outlet_sf_list)),
+  tar_target(p6_state_comids, 
+             identify_comids_aoi(p6_state_sf) %>% 
+               mutate(region = p6_state_sf$full,
+                      region_fname = p6_state_sf$abbr) %>% 
+               st_drop_geometry() %>% 
+               select(nhd_comid = comid, region, region_fname),
+             pattern = map(p6_state_sf)),
   
-  ###### Identify all COMIDs for a specific watershed #####
+  # Filter flowlines sf to just those in the states for mapping later
+  tar_target(p6_state_flowlines_sf, p1_nhdplus_flowlines_sf %>% 
+               rename(nhd_comid = COMID) %>% 
+               filter(nhd_comid %in% p6_state_comids$nhd_comid)),
   
-  # Using the previous downstream COMIDs, identify all that exist upstream
-  tar_target(p6_river_upstream_comids, 
-             identify_upstream_comids(comid_in = p6_river_outlet_comid$nhd_comid),
-             map(p6_river_outlet_comid)),
+  ###### Prepare the full network of flowlines for identifying upstream COMIDs ######
   
-  # Now we need a table that provides the upstream COMIDs for each individual 
-  # one in this watershed in order to calculate cumulative road salt. We won't
-  # add to the downloads because we will look at uniques for downloads since
-  # many will repeat.
-  tarchetypes::tar_group_size(p6_river_upstream_comids_grp, 
-                              size = 500, # Set groups of 500 to map over
-                              p6_river_upstream_comids),
-  tar_target(p6_river_upstream_comids_enumerated,{
-    p6_river_upstream_comids_grp %>% 
-      split(.$nhd_comid_upstream) %>%
-      purrr::map(~identify_upstream_comids(.x$nhd_comid_upstream)) %>% 
-      bind_rows()
-  }, pattern = map(p6_river_upstream_comids_grp)),
+  # Filter the national flowlines to only those in HUCs that overlap with the states.
+  # This is just so that we don't have to traverse a larger network than necessary.
   
-  tar_target(p6_unique_comids, unique(p6_river_upstream_comids_enumerated$nhd_comid_upstream)),
+  # For each state, identify the HUC-02s that overlap
+  # This is so that we can download flowlines that will be 
+  # upstream of everything. 
+  tar_target(p6_state_huc_sf, get_huc(AOI = p6_state_sf, type = 'huc02')),
+  
+  # Now for each HUC-02 that intersected with our states, 
+  # identify the COMIDs of flowlines within those.
+  tar_target(p6_huc_comids, 
+             identify_comids_aoi(p6_state_huc_sf) %>% 
+               mutate(region = p6_state_huc_sf$name,
+                      region_fname = p6_state_huc_sf$huc2) %>% 
+               st_drop_geometry() %>% 
+               select(nhd_comid = comid, region, region_fname),
+             pattern = map(p6_state_huc_sf)),
+  
+  # Add `toids` for preparing to find upstream COMIDs and then 
+  # subset the NHD+ to just the relevant HUCs
+  tar_target(p6_huc_flowlines_sf, p1_nhdplus_flowlines_sf %>% 
+               hydroloom::add_toids() %>% 
+               filter(COMID %in% p6_huc_comids$nhd_comid)),
+  
+  # Now make a smaller table that is only the network info
+  # needed to find the upstream COMIDs later.
+  tar_target(p6_huc_flowlines_network_tbl, 
+             p6_huc_flowlines_sf %>% 
+               st_drop_geometry() %>% 
+               select(comid = COMID, toid)),
+  
+  ##### Get the upstream COMIDs for *each one within* our region of interest #####
+  
+  # This could be updated in the future to do all the HUC flowlines BUT since the  
+  # model was built using sites that fell into one of the states in `p6_states`, 
+  # it makes sense that we are only using the model to predict flowlines within
+  # the modeled spatial region. 
+  
+  # Set up groups of 1000 COMIDs per target (avoid too many targets at once)
+  tarchetypes::tar_group_size(p6_state_comids_grp, 
+                              size = 1000, # Set groups of 1000 to map over NLDI navigation
+                              p6_state_comids),
+  
+  # Identify the full upstream network, treating each COMID as its own outlet
+  # This must be done separately for *each* COMID
+  tar_target(p6_upstream_comids, {
+    
+    # Run each mapped group in parallel since it doesn't access any 
+    # web services (that's not a good practice), but mapping is sequential
+    
+    # Number of workers is based on the number of cores your computer has
+    # so that we don't use up ALL possible cores on your computer
+    comp_cores <- detectCores()
+    n_cores <- ifelse(comp_cores > 3, comp_cores-2, 2)
+    cl <- makeCluster(n_cores)
+    registerDoParallel(cl)
+    
+    upstream_tbl <- foreach(i=1:nrow(p6_state_comids_grp), 
+                            .combine=bind_rows, 
+                            # Need to explicitly pass in packages and functions so that
+                            # the parallel workers have them available.
+                            .export = c('identify_upstream_comids_hy'),
+                            .packages = c('nhdplusTools', 'tidyverse'),
+                            .verbose = FALSE) %dopar% {
+                              identify_upstream_comids_hy(comid_in = p6_state_comids_grp$nhd_comid[i],
+                                                          flines_network = p6_huc_flowlines_network_tbl)
+                            }
+      
+    # Restore the regular state
+    registerDoSEQ()
+    stopCluster(cl)
+    
+    return(upstream_tbl)
+    
+  }, pattern = map(p6_state_comids_grp)),
+  
+  tar_target(p6_unique_comids, unique(p6_upstream_comids$nhd_comid_upstream)),
   
   ##### Download all attributes for COMIDs #####
   
@@ -74,22 +121,11 @@ p6_targets <- list(
   # Pivot & combine NHD+ attributes
   tar_target(p6_attr_nhd, prepare_nhd_attributes(p6_nhdplus_attr_vals_tbl, NULL)),
   
-  # Download catchment polygons to calculate salt
-  tarchetypes::tar_group_size(p6_unique_comids_grp, 
-                              size = 100, # Set groups of 100 to map over
-                              # Create unique vector of COMIDs to download catchments only once
-                              tibble(nhd_comid = p6_unique_comids)),
-  # Download NHD+ catchment polygons by groups of COMIDs
-  tar_target(p6_nhdplus_catchments_gpkg,
-             download_nhdplus_catchments(out_file = sprintf('6_PredictClass/tmp/nhdplus_catchment_%s.gpkg',
-                                                            unique(p6_unique_comids_grp$tar_group)),
-                                         comids = p6_unique_comids_grp$nhd_comid),
-             pattern = map(p6_unique_comids_grp),
-             format = 'file', error = "continue"),
+  # Filter NHD+ catchment polygons to just the COMIDs used here
+  tar_target(p6_nhdplus_catchment_sf, p1_nhdplus_catchments_sf %>% filter(nhd_comid %in% p6_unique_comids)),
   
-  # Extract the catchments as polygons and summarize total salt per catchment
+  # Now use the catchment polygons to summarize total salt per catchment
   # This includes any catchments that will only be used for upstream calculations
-  tar_target(p6_nhdplus_catchment_sf, extract_nhdplus_geopackage_layer(p6_nhdplus_catchments_gpkg)),
   tar_target(p6_nhdplus_catchment_salt, aggregate_road_salt_per_poly(road_salt_rast = p2_road_salt_rast, 
                                                                      polys_sf = p6_nhdplus_catchment_sf)),
   
@@ -99,16 +135,16 @@ p6_targets <- list(
   # catchment area calculations above do not need the filtering because they are 
   # already missing catchments with 0 drainage areas.
   
-  # Calculate the total area of each catchment & its upstream catchements
+  # Calculate the total area of each catchment & its upstream catchments
   tar_target(p6_attr_basinArea, calculate_catchment_areas(polys_sf = p6_nhdplus_catchment_sf,
-                                                          comid_upstream_tbl = p6_river_upstream_comids_enumerated,
+                                                          comid_upstream_tbl = p6_upstream_comids,
                                                           comid_site_xwalk = NULL)),
   
   # Then, map salt for each NHD COMID catchment polygon to sites and calculate cumulative road salt
   tar_target(p6_attr_roadSalt, map_catchment_roadSalt_to_site(road_salt_comid = p6_nhdplus_catchment_salt, 
                                                               basin_areas = p6_attr_basinArea,
                                                               comid_site_xwalk = NULL,
-                                                              comid_upstream_tbl = p6_river_upstream_comids_enumerated)),
+                                                              comid_upstream_tbl = p6_upstream_comids)),
   
   # Now keep only the salt attributes of interest in the final model
   tar_target(p6_attr_roadSalt_forModel, p6_attr_roadSalt %>% select(nhd_comid, attr_roadSaltCumulativePerSqKm)),
@@ -125,7 +161,6 @@ p6_targets <- list(
   
   # Now combine all attributes into a single table
   tar_target(p6_attr_all, combine_static_attributes(joinby = 'nhd_comid',
-                                                    # p2_attr_flow_nwm, 
                                                     p6_attr_basinArea %>% select(nhd_comid, attr_areaCumulativeSqKm),
                                                     p6_attr_roadSalt_forModel,
                                                     p6_attr_nhd,
@@ -142,11 +177,6 @@ p6_targets <- list(
     stopifnot(all(attrs_model %in% names(p6_attr_all)))
   }), 
   
-  # Extract the flowline spatial features from the downloaded geopackages. This 
-  # includes ALL COMIDs (even those with 0 drainage areas), but will be filtered later.
-  tar_target(p6_nhdplus_flowlines_sf, extract_nhdplus_geopackage_layer(p6_nhdplus_catchments_gpkg, 
-                                                                       gpkg_layer = 'NHDFlowline_Network')),
-  
   tar_target(p6_predict_episodic, p6_attr_all %>%
                mutate(pred = as.character(predict(p5_rf_model_optimized, .))) %>%
                replace_na(list(pred = 'Not classified')) %>% 
@@ -154,18 +184,29 @@ p6_targets <- list(
                                         levels = c('Episodic', 'Not episodic', 'Not classified'))) %>% 
                select(nhd_comid, pred, pred_fct)),
   
+  # Pull out COMIDs that were modeled as a vector
+  tar_target(p6_predicted_comid, p6_attr_all %>% pull(nhd_comid) %>% unique()),
+  
+  # Find their streamorder so that we can filter to bigger streams for mapping
+  tar_target(p6_predicted_comid_streamorder, p6_state_flowlines_sf %>%
+               st_drop_geometry() %>% 
+               filter(nhd_comid %in% p6_predicted_comid) %>% 
+               select(nhd_comid, streamorder = StreamOrde)),
+  
   # Make a map of predicted classes per defined river outlet
-  tar_target(p6_river_comid_xwalk_grp, p6_river_upstream_comids %>% 
-               left_join(p6_river_outlet_comid, by = 'nhd_comid') %>% 
-               select(river, river_fname, nhd_comid = nhd_comid_upstream) %>% 
-               group_by(river) %>% 
+  tar_target(p6_comid_xwalk_grp, p6_predicted_comid_streamorder %>% 
+               left_join(p6_state_comids, by = 'nhd_comid') %>% 
+               # Remove tiny streams before trying to map!
+               filter(streamorder > 0) %>%
+               select(region, region_fname, nhd_comid) %>% 
+               group_by(region) %>% 
                tar_group(),
              iteration = 'group'),
   tar_target(p6_predict_episodic_map_png, {
     file_out <- sprintf('6_PredictClass/out/predict_map_%s.png', 
-                        unique(p6_river_comid_xwalk_grp$river_fname))
-    river_predict_map <- p6_nhdplus_flowlines_sf %>%
-      right_join(p6_river_comid_xwalk_grp, by = 'nhd_comid') %>% 
+                        unique(p6_comid_xwalk_grp$region_fname))
+    region_predict_map <- p6_state_flowlines_sf %>%
+      right_join(p6_comid_xwalk_grp, by = 'nhd_comid') %>% 
       left_join(p6_predict_episodic, by = 'nhd_comid') %>% 
       ggplot() +
       ggspatial::annotation_map_tile(type = 'cartolight', zoom = 10) +
@@ -174,9 +215,9 @@ p6_targets <- list(
                                     `Not episodic` = '#005271',
                                     `Not classified` = 'grey50'),
                          name = 'Predicted\nclass') +
-      ggtitle(sprintf('Predicted class for %s', unique(p6_river_comid_xwalk_grp$river)))
-    ggsave(file_out, river_predict_map, width = 6.5, height = 6.5, units = 'in', dpi = 500)
+      ggtitle(sprintf('Predicted class for %s', unique(p6_comid_xwalk_grp$region)))
+    ggsave(file_out, region_predict_map, width = 6.5, height = 6.5, units = 'in', dpi = 500)
     return(file_out)
-  }, pattern = map(p6_river_comid_xwalk_grp), format = 'file')
+  }, pattern = map(p6_comid_xwalk_grp), format = 'file')
   
 )
