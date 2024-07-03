@@ -42,7 +42,9 @@ map_category_sites <- function(sites_sf, category_sites, states_to_include, site
 #' at least a `site_no` and `geometry` column.
 #' @param all_site_categories a tibble with one row per site per model to visualize.
 #' Expects the columns `site_no`, `model`, `site_category`.
-#' @param sites_category_criteria TODO
+#' @param sites_category_criteria a tibble with one row per site and the criteria
+#' used to classify it as well as the class. Expects the columns `site_no`,
+#' `not_winter`, `winter`, and `is_episodic`.
 #' @param states_to_include a vector of state two-letter abbreviation codes to
 #' create the map object using `usmap` package fxns.
 #' @param episodic_col character string indicating what color to give episodic data
