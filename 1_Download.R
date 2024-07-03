@@ -276,16 +276,19 @@ p1_targets <- list(
     return('1_Download/tmp/NHDPlusV21_NationalData_Seamless_Geodatabase_Lower48_07.7z')
   }, format='file'),
   
+  # You will need the 7-Zip program to unzip the file from NHDPlus
+  # On Windows, the 7z executable is typically available in `C:/Program Files/7-Zip/`
+  # On a Mac, the 7z executable is typically available in `/usr/local/bin/7z`
+  tar_target(p1_path_7z, find_7z()), 
+  
   # Unzip flowlines GDB *to a new folder* (this part is key)
-  # tar_target(p1_nhdplus_gdb, {
-  #   unzip(p1_nhdplus_gdb_7z,
-  #         exdir = '1_Download/out_nhdplus')
-  #   return('1_Download/out_nhdplus/NHDPlusNationalData/NHDPlusV21_National_Seamless_Flattened_Lower48.gdb')
-  # }, format = 'file'),
-  # TODO: I HAD TO MANUALLY UNZIP AND MOVE TO THIS LOCATION. 
-  # COULDN'T GET THE CODE ABOVE TO WORK IN THE PIPELINE.
-  tar_target(p1_nhdplus_gdb, '1_Download/out_nhdplus/NHDPlusNationalData/NHDPlusV21_National_Seamless_Flattened_Lower48.gdb',
-             format = 'file'),
+  tar_target(p1_nhdplus_gdb, {
+    zip_file <- p1_nhdplus_gdb_7z
+    dest_dir <- '1_Download/out_nhdplus'
+    dest_file <- 'NHDPlusNationalData/NHDPlusV21_National_Seamless_Flattened_Lower48.gdb'
+    system2(p1_path_7z, args = c("x", zip_file, paste0("-o", dest_dir), '-aoa'))
+    return(file.path(dest_dir, dest_file))
+  }, format = 'file'),
   
   # Load the national flowlines layer as an sf object and drop the vertical attributes
   # Also, remove any flowline with a catchment area of zero. These indicate flowlines that
