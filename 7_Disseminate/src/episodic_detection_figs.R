@@ -7,25 +7,43 @@
 #' columns `site_no`, `dateTime`, `SpecCond`
 #' @param sites_episodic a character vector giving site numbers that met criteria
 #' for being an "episodic site". See targets in `4_EpisodicSalinization`. 
+#' @param episodic_col character string indicating what color to give episodic data
+#' @param not_episodic_col character string indicating what color to give not episodic data
 #' @param winter_months a numeric vector indicating which months should be 
 #' considered "winter"; defaults to `c(12,1,2,3)` or Dec, Jan, Feb, and Mar.
 #' @param nrow numeric value indicating the number of rows of facets to plot; defaults to 5
+#' @param addNWISName logical indicating whether or not the name used by NWIS
+#' for each station should be used to label facets along with the site number.
+#' Defaults to `FALSE`.
 #' 
 #' @returns a list of ggplots
 #' 
-create_episodic_plotlist <- function(ts_sc, sites_episodic, winter_months = c(12,1,2,3), nrow=5) {
+create_episodic_plotlist <- function(ts_sc, sites_episodic, episodic_col, not_episodic_col,
+                                     winter_months = c(12,1,2,3), nrow=5, addNWISName = FALSE) {
+  
+  unique_sites <- unique(ts_sc$site_no)
+  
+  if(addNWISName) {
+    site_table <- readNWISsite(unique_sites) %>% 
+      select(site_no, station_nm) %>% 
+      # Convert station names into title case but keep states capitalized
+      separate(station_nm, c('station', 'state'), sep = ', ') %>% 
+      mutate(station = str_to_title(station)) %>% 
+      unite(station_nm, station, state, sep = ', ') %>% 
+      mutate(facet_title = sprintf('%s\nNWIS Site %s', station_nm, site_no))
+  } else {
+    site_table <- tibble(site_no = unique_sites) %>%
+      # Force station_nm to be the same as the site_no for ordering purposes
+      mutate(facet_title = site_no)
+  }
   
   # Prepare information for ordering sites and adding horizontal lines to each plot
-  site_category <- ts_sc %>% 
-    mutate(is_winter = month(dateTime) %in% winter_months) %>% 
-    group_by(site_no) %>% 
-    summarize(SpC75 = quantile(SpecCond, probs = 0.75, na.rm=TRUE),
-              .groups = 'keep') %>% 
+  site_category <- site_table %>% 
     # Order sites based on whether or not they were episodic
     mutate(site_category = ifelse(site_no %in% sites_episodic, 'Episodic', 'Not episodic')) %>% 
     arrange(site_category, site_no) %>% 
     # Setup site number as an ordered factor to control order of facets
-    mutate(site_no_ord = factor(site_no, levels = .$site_no)) %>% 
+    mutate(site_no_ord = factor(site_no, levels = .$site_no, labels = .$facet_title)) %>% 
     group_by(site_no_ord) %>% 
     # Prepare each site to be shown in a specific group's set of facets
     mutate(grp_num = ceiling(cur_group_id()/25)) %>% 
@@ -51,11 +69,10 @@ create_episodic_plotlist <- function(ts_sc, sites_episodic, winter_months = c(12
   plot_episodic_facets <- function(ts_sc, ts_sc_info) {
     ggplot(data = ts_sc) +
       geom_path(aes(x = dateTime, y = SpecCond, color = winter_behavior, group=year), na.rm = TRUE) +
-      scale_color_manual(values = c(`Winter date (episodic site)` = '#0b5394', 
-                                    `Winter date (not episodic site)` = 'grey15',
+      scale_color_manual(values = c(`Winter date (episodic site)` = episodic_col, 
+                                    `Winter date (not episodic site)` = not_episodic_col,
                                     `Non-winter date` = 'grey70')) +
       facet_wrap(vars(site_no_ord), scales='free', nrow=nrow) +
-      geom_hline(data = ts_sc_info, aes(yintercept = SpC75), linetype = 'dashed') + 
       ylab('Specific conductance, µS/cm at 25°C') + 
       theme_bw() +
       theme(text = element_text(size=10), 

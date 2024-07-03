@@ -7,11 +7,11 @@
 #' @param rf_model_importance a tibble with attribute importance and the columns 
 #' `attribute`, `site_category`, `importance`, `importance_sd`, and `attribute_grp`.
 #' @param attribute_name_xwalk tibble with the columns `attribute` and `display_name`
-#' @param scico_palette character string indicating what `scico` color palette to use
+#' @param point_seg_col character string indicating what color to use for points and segments
 #' 
 #' @returns a character string giving the location of the saved figure file
 #'
-visualize_attr_importance <- function(out_file, rf_model_importance, attribute_name_xwalk, scico_palette) {
+visualize_attr_importance <- function(out_file, rf_model_importance, attribute_name_xwalk, point_seg_col) {
   
   attribute_order <- rev(rf_model_importance$attribute)
   display_name_in_order <- tibble(attribute = attribute_order) %>% 
@@ -26,15 +26,12 @@ visualize_attr_importance <- function(out_file, rf_model_importance, attribute_n
   data_to_plot <- rf_model_importance %>% 
     mutate(attr_fact = attribute_as_factor(attribute, attribute_order, display_name_in_order))
   
-  p_importance <- ggplot(data_to_plot, aes(x = importance, y = attr_fact,
-                           color = attribute_grp)) +
-    geom_point(size = 4) +
+  p_importance <- ggplot(data_to_plot, aes(x = importance, y = attr_fact)) +
+    geom_point(size = 4, color = point_seg_col) +
     geom_segment(aes(x = importance - importance_sd,
                      xend = importance + importance_sd,
-                     yend = attr_fact), linewidth = 1) +
-    scico::scale_color_scico_d(name = 'Attribute group', 
-                               palette = scico_palette,
-                               begin = 0.25, end = 0.75) +
+                     yend = attr_fact), linewidth = 1,
+                 color = point_seg_col) +
     theme_bw() +
     theme(text = element_text(color = 'grey30'),
           axis.title.y = element_blank(),
