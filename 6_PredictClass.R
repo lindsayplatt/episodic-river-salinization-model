@@ -11,7 +11,7 @@ p6_targets <- list(
   ###### First, use states to identify a set of COMIDs ######
   
   # Setup states as an sf polygon
-  tar_target(p6_states, 'MN'),
+  tar_target(p6_states, c('MN', 'IA', 'IL', 'WI')),
   # tar_target(p6_states, p1_conus_state_cds),
   tar_target(p6_state_sf, usmap::us_map(include = p6_states) %>%
                st_as_sf(coords = c('x', 'y'),
@@ -36,10 +36,13 @@ p6_targets <- list(
   # Filter the national flowlines to only those in HUCs that overlap with the states.
   # This is just so that we don't have to traverse a larger network than necessary.
   
-  # For each state, identify the HUC-02s that overlap
+  # For each state, identify the HUC-02s that overlap then combine so we only 
+  # have one of each HUC (need to query for HUCs one state at a time).
   # This is so that we can download flowlines that will be 
   # upstream of everything. 
-  tar_target(p6_state_huc_sf, get_huc(AOI = p6_state_sf, type = 'huc02')),
+  tar_target(p6_state_huc_sf_all, get_huc(AOI = p6_state_sf, type = 'huc02'),
+             pattern = map(p6_state_sf), iteration = 'list'),
+  tar_target(p6_state_huc_sf, bind_rows(p6_state_huc_sf_all) %>% distinct()),
   
   # Now for each HUC-02 that intersected with our states, 
   # identify the COMIDs of flowlines within those.
