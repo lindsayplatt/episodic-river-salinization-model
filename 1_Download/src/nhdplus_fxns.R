@@ -283,32 +283,6 @@ identify_upstream_comids <- function(comid_in) {
          nhd_comid_upstream = comids_ut)
 }
 
-#' @title Use a downloaded network to identify upstream COMIDs
-#' @description Rather than query the webservice using the `navigate_nldi()`
-#' function, employ hydroloom functionality to query a local network of flowlines
-#' with `toid` in order to identify the upstream COMIDs for a given COMID as 
-#' the outlet. Similar to `identify_upstream_comids()` but doesn't hit a web 
-#' service each time it is called.
-#' 
-#' @param comid_in a single character string representing the NHD COMID
-#' @param flines_network a data.frame with at least one column giving the 
-#' identifier and one called `toid` declaring the downstream flowline. See 
-#' `?nhdplusTools::get_sorted()` for more information.
-#' 
-#' @return a tibble of COMIDs with three columns - `nhd_comid` which includes the
-#' COMID passed into the function, `nhd_comid_upstream` which are the COMIDs
-#' found to be upstream of the value in `nhd_comid`, and `streamorder`. Note 
-#' that values in `nhd_comid` will repeat as necessary to align with however 
-#' many `nhd_comid_upstream` values they have.
-#' 
-identify_upstream_comids_hy <- function(comid_in, flines_network) {
-  get_sorted(flines_network, outlets = comid_in) %>% 
-    mutate(nhd_comid = comid_in) %>% 
-    select(nhd_comid, 
-           nhd_comid_upstream = COMID, 
-           streamorder = StreamOrde)
-}
-
 #' @title Identify COMIDs given a polygon
 #' @description Use `nhdplusTools` functions to get COMIDs for any one polygon
 #' 
@@ -319,5 +293,8 @@ identify_upstream_comids_hy <- function(comid_in, flines_network) {
 #' 
 identify_comids_aoi <- function(aoi_sf) {
   get_nhdplus(AOI = aoi_sf, realization = "outlet") %>% 
+    # Remove COMIDs from upstream list if they don't have an area (won't be
+    # useful for our downstream purposes because it doesn't have a catchment)
+    filter(areasqkm > 0) %>% 
     select(comid, toid = tonode) 
 }
