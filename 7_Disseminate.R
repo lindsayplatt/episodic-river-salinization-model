@@ -112,7 +112,32 @@ p7_targets <- list(
   
   ###### Figure 4: Prediction maps for the full region #####
   
-  # TODO: MOVE FIGURE FROM 6_PredictClass to this spot
+  # Make a map of predicted classes per defined river outlet
+  tar_target(p7_comid_xwalk_grp, p6_predicted_comid_streamorder %>% 
+               left_join(p6_state_comids, by = 'nhd_comid') %>% 
+               # Remove tiny streams before trying to map!
+               filter(streamorder > 1) %>%
+               select(region, region_fname, nhd_comid) %>% 
+               group_by(region) %>% 
+               tar_group(),
+             iteration = 'group'),
+  tar_target(p7_predict_episodic_map_png, {
+    file_out <- sprintf('7_Disseminate/out/Fig3_predict_map_%s.png', 
+                        unique(p7_comid_xwalk_grp$region_fname))
+    region_predict_map <- p6_state_flowlines_sf %>%
+      right_join(p7_comid_xwalk_grp, by = 'nhd_comid') %>% 
+      left_join(p6_predict_episodic, by = 'nhd_comid') %>% 
+      ggplot() +
+      ggspatial::annotation_map_tile(type = 'cartolight', zoom = 10) +
+      geom_sf(aes(color = pred_fct)) +
+      scale_color_manual(values = c(Episodic = p7_color_episodic,
+                                    `Not episodic` = p7_color_not_episodic,
+                                    `Not classified` = 'grey50'),
+                         name = 'Predicted\nclass') +
+      ggtitle(sprintf('Predicted class for %s', unique(p6_comid_xwalk_grp$region)))
+    ggsave(file_out, region_predict_map, width = 3.25, height = 3.25, units = 'in', dpi = 500)
+    return(file_out)
+  }, pattern = map(p6_comid_xwalk_grp), format = 'file'),
   
   ##### Supplemental figures #####
   
