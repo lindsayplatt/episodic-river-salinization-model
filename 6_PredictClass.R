@@ -12,6 +12,7 @@ p6_targets <- list(
   
   # Setup states as an sf polygon
   tar_target(p6_states, 'MN'),
+  # tar_target(p6_states, p1_conus_state_cds),
   tar_target(p6_state_sf, usmap::us_map(include = p6_states) %>%
                st_as_sf(coords = c('x', 'y'),
                         crs = usmap::usmap_crs()) %>%
