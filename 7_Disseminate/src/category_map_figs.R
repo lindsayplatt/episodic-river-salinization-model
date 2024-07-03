@@ -28,34 +28,70 @@ map_category_sites <- function(sites_sf, category_sites, states_to_include, site
     ggtitle(map_title, subtitle = sprintf('n = %s', length(category_sites))) +
     theme_void() +
     theme(text = element_text(hjust = 0.5, color = site_color),
-          plot.title = element_text(size=point_title_subtitle_sizes[2], face='bold', hjust = 0.5),
-          plot.subtitle = element_text(size=point_title_subtitle_sizes[3], hjust = 0.5),
+          plot.title = element_text(size=point_title_subtitle_sizes[2], face='bold', hjust = 0.5, vjust = -3),
+          plot.subtitle = element_text(size=point_title_subtitle_sizes[3], hjust = 0.5, vjust = -3),
           plot.margin = unit(c(0,0,0,0), unit='line'))
 }
 
-#' @title Create a figure with side-by-side maps of sites categorized by episodic or not
+#' @title Create a figure with side-by-side figs displaying sites as episodic or not
 #' @description Maps both the episodic and not episodic sites in side-by-side maps
+#' and includes a figure of the criteria used to determine if a site was episodic.
 #' 
 #' @param out_file a filepath specifying where to save the image output as a PNG
 #' @param sites_sf a spatial data frame with locations for NWIS sites. Needs
 #' at least a `site_no` and `geometry` column.
 #' @param all_site_categories a tibble with one row per site per model to visualize.
 #' Expects the columns `site_no`, `model`, `site_category`.
+#' @param sites_category_criteria TODO
 #' @param states_to_include a vector of state two-letter abbreviation codes to
 #' create the map object using `usmap` package fxns.
+#' @param episodic_col character string indicating what color to give episodic data
+#' @param not_episodic_col character string indicating what color to give not episodic data
 #' 
 #' @returns a character string giving the location of the saved figure file
 #' 
-create_episodic_site_map <- function(out_file, sites_sf, all_site_categories, states_to_include) {
+create_episodic_criteria_fig <- function(out_file, sites_sf, all_site_categories, 
+                                         sites_category_criteria, states_to_include, 
+                                         episodic_col, not_episodic_col) {
   
+  # Map of episodic sites
   episodic_sites <- all_site_categories %>% filter(site_category == 'Episodic') %>% pull(site_no)
-  p_episodic <- map_category_sites(sites_sf, episodic_sites, states_to_include, '#0b5394', 'Episodic sites')
+  p_episodic <- map_category_sites(sites_sf, episodic_sites, states_to_include, 
+                                   episodic_col, 'Episodic sites', 
+                                   point_title_subtitle_sizes = c(1.5, 10, 8)) +
+    theme(plot.title.position = 'plot')
   
+  # Map of not episodic sites
   notepisodic_sites <- all_site_categories %>% filter(site_category == 'Not episodic') %>% pull(site_no)
-  p_notepisodic <- map_category_sites(sites_sf, notepisodic_sites, states_to_include, 'grey30', 'Not episodic sites')
+  p_notepisodic <- map_category_sites(sites_sf, notepisodic_sites, states_to_include, 
+                                      not_episodic_col, 'Not episodic sites', 
+                                      point_title_subtitle_sizes = c(1.5, 10, 8))
   
+  # Combine the two maps so that they are vertical
+  p_maps <- cowplot::plot_grid(p_episodic, p_notepisodic, nrow=2, 
+                               labels=c("(a)", "(b)"), label_size = 10)
+    
+  # Criteria of episodic vs not  
+  p_criteria <- sites_category_criteria %>% 
+    mutate(is_episodic = ifelse(is_episodic, 'Episodic', 'Not episodic')) %>% 
+    ggplot(aes(x = not_winter, y = winter, fill = is_episodic)) +
+    geom_abline(slope = 1, intercept = 0) +
+    geom_point(alpha = 0.5, size=2, shape = 21) +
+    scale_fill_manual(values = c(`Not episodic` = not_episodic_col, 
+                                 Episodic = episodic_col),
+                      name = NULL) +
+    theme_bw() +
+    theme(legend.position = 'none',
+          panel.grid = element_blank(),
+          axis.title.x = element_text(vjust = -2),
+          axis.title.y = element_text(vjust = 2),
+          plot.margin = unit(c(1.5,0.5,1,1), unit='line')) +
+    xlab('Non-Winter Median Peak SpC') +
+    ylab('Winter Median Peak SpC')
+
   png(out_file, width = 6.5, height = 3.25, units='in', res=500)
-  print(cowplot::plot_grid(p_episodic, p_notepisodic, nrow=1, labels=c("(a)", "(b)"), label_size = 10))
+  print(cowplot::plot_grid(p_maps, p_criteria, nrow=1, labels=c("", "(c)"), 
+                           label_size = 10, rel_widths = c(0.35, 0.65)))
   dev.off()
   
   return(out_file)

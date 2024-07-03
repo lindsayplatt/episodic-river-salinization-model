@@ -13,7 +13,7 @@
 #' @param attribute_order a vector of attributes in the order that the mini plots
 #' within the figure should be ordered.
 #' @param attribute_name_xwalk tibble with the columns `attribute` and `display_name`
-#' @param line_color character string indicating what color to give the line
+#' @param line_col character string indicating what color to give the line
 #' 
 #' @returns a character string giving the location of the saved figure file
 #' 
