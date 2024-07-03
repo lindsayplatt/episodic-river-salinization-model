@@ -197,4 +197,17 @@ p6_targets <- list(
                filter(nhd_comid %in% p6_predicted_comid) %>% 
                select(nhd_comid, streamorder = StreamOrde)),
   
+  # Can easily use `p6_predicted_comid_lengths` to group_by
+  tar_target(p6_comid_lengths, p6_state_flowlines_sf %>% 
+               st_drop_geometry() %>% 
+               select(nhd_comid, reach_length_km = LENGTHKM)),
+  tar_target(p6_predicted_comid_lengths,
+             p6_predict_episodic %>% 
+               left_join(p6_comid_lengths, by = 'nhd_comid')),
+  tar_target(p6_predicted_comid_lengths_summary, 
+             p6_state_comids %>% 
+               left_join(p6_predicted_comid_lengths, by = 'nhd_comid') %>% 
+               group_by(region, pred) %>% 
+               summarize(total_length_km = sum(reach_length_km, na.rm=T),
+                         .groups='keep'))
 )
