@@ -80,6 +80,11 @@ znorm <- function(ts){
 calculate_catchment_areas <- function(polys_sf, comid_upstream_tbl, comid_site_xwalk) {
   # Using area that is given already - I checked and they are very similar 
   # to calculating the area using `st_area()`.
+  
+  if(is.list(comid_upstream_tbl)) {
+    comid_upstream_tbl = bind_rows(comid_upstream_tbl)
+  }
+  
   catchment_area_tbl <- polys_sf %>% 
     st_drop_geometry() %>% 
     select(nhd_comid_upstream = nhd_comid, area_sqkm = areasqkm)
@@ -261,6 +266,10 @@ map_catchment_roadSalt_to_site <- function(road_salt_comid, basin_areas, comid_s
 #' function renaming step. You could add it, or leave it as-is. 
 #' 
 prepare_nhd_attributes <- function(nhd_attribute_table, comid_site_xwalk) {
+  if(is.list(nhd_attribute_table)) {
+    nhd_attribute_table = bind_rows(nhd_attribute_table)
+  }
+
   id_col <- ifelse(is.null(comid_site_xwalk), 'nhd_comid', 'site_no')
   
   nhd_attribute_table %>%
