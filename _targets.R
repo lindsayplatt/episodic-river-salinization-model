@@ -15,6 +15,7 @@ tar_option_set(
     'ggspatial', # Needed for mapping predicted flowlines
     'httr',
     'hydroloom', # Needed for finding upstream COMIDs
+    'lwgeom', #For endpoint function for converting linestring to point
     'magick', # Needed for 7_Disseminate and `cowplot::draw_image()`
     'MESS',
     'nhdplusTools', # Need to have a specific version. TODO, update once its on CRAN https://github.com/DOI-USGS/nhdplusTools/issues/365#ref-commit-6b18b97
@@ -45,11 +46,10 @@ source('2_Prepare.R')
 source('3_Filter.R')
 source('4_EpisodicSalinization.R')
 source('5_DefineCharacteristics.R')
-source('6_PredictClass.R')
+source('6_PredictClass_HD.R')
 source('7_Disseminate.R')
 
 select <- dplyr::select # The raster pkg keeps overriding this one so make sure this is correct
 
 c(p1_targets, p2_targets, p3_targets,
-  p4_targets, p5_targets, p6_targets,
-  p7_targets)
+  p4_targets, p5_targets, p6_targets, p7_targets)
