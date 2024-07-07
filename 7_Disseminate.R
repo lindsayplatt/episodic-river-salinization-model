@@ -114,32 +114,135 @@ p7_targets <- list(
   
   # Make a map of predicted classes per defined river outlet
   tar_target(p7_comid_xwalk_grp, p6_predicted_comid_streamorder %>% 
-               left_join(p6_state_comids, by = 'nhd_comid') %>% 
+               # filter to region of interest 
+               inner_join(p6_state_comids %>% dplyr::filter(region_fname %in% p1_conus_state_cds),
+                         by = 'nhd_comid') %>% 
                # Remove tiny streams before trying to map!
                filter(streamorder > 1) %>%
                select(region, region_fname, nhd_comid) %>% 
                group_by(region) %>% 
                tar_group(),
              iteration = 'group'),
-  # TODO: This needs to be adjusted to look better once we are doing more than one state!
-  tar_target(p7_predict_episodic_map_png, {
-    file_out <- sprintf('7_Disseminate/out/Fig4_predict_map_%s.png', 
-                        unique(p7_comid_xwalk_grp$region_fname))
-    region_predict_map <- p6_state_flowlines_sf %>%
+  
+  # Print statistics
+  tar_target(p7_stats, {
+    p7_comid_xwalk = p6_predicted_comid_streamorder %>% 
+      # filter to region of interest 
+      inner_join(p6_state_comids %>% dplyr::filter(region_fname %in% p1_conus_state_cds),
+                 by = 'nhd_comid')
+    
+    regionJoin = huc_flowlines %>%
+      st_drop_geometry() %>% 
+      right_join(p7_comid_xwalk, by = 'nhd_comid') %>% 
+      left_join(p6_predict_episodic, by = 'nhd_comid')
+    
+    stateTot = regionJoin %>% 
+      group_by(region, region_fname) %>% 
+      mutate(stateLength = sum(LENGTHKM, na.rm = T)) %>% 
+      group_by(region, region_fname, stateLength, pred_fct) %>% 
+      summarise(predLength = sum(LENGTHKM, na.rm = T)) %>% 
+      ungroup() %>% 
+      mutate(predLengthPer = 100*predLength/stateLength) %>% 
+      arrange(pred_fct, desc(predLengthPer))
+    
+    regionTot = regionJoin %>% 
+      mutate(regionLength = sum(LENGTHKM, na.rm = T)) %>% 
+      group_by(regionLength, pred_fct) %>% 
+      summarise(predLength = sum(LENGTHKM, na.rm = T)) %>% 
+      ungroup() %>% 
+      mutate(predLengthPer = 100*predLength/regionLength) %>% 
+      arrange(pred_fct, desc(predLengthPer))
+      
+    orderTot = regionJoin %>% 
+      group_by(StreamOrde) %>% 
+      mutate(orderLength = sum(LENGTHKM, na.rm = T)) %>% 
+      group_by(StreamOrde, orderLength, pred_fct) %>% 
+      summarise(predLength = sum(LENGTHKM, na.rm = T)) %>% 
+      ungroup() %>% 
+      mutate(predLengthPer = 100*predLength/orderLength) %>% 
+      arrange(pred_fct, StreamOrde, desc(predLengthPer))
+    
+    sink("7_Disseminate/out/outputStats.txt")
+      cat("For entire region \n")
+      print(regionTot)
+      cat("\n")
+      cat("For individual states \n")
+      print(stateTot, n = 80)
+      cat("\n")
+      cat("By stream order \n")
+      print(orderTot, n = 80)
+      cat("\n")
+    sink()
+  }),
+  
+  # Full map
+  tar_target(p7_predict_episodic_mapAll_png, {
+    file_out <- '7_Disseminate/out/Fig4_predict_map.png'
+   
+     region_predict_map <- huc_flowlines %>%
       right_join(p7_comid_xwalk_grp, by = 'nhd_comid') %>% 
       left_join(p6_predict_episodic, by = 'nhd_comid') %>% 
       ggplot() +
-      ggspatial::annotation_map_tile(type = 'cartolight', zoom = 10) +
-      geom_sf(aes(color = pred_fct)) +
+      theme_bw(base_size = 9) +
+      ggspatial::annotation_map_tile(type = 'cartolight', zoom = 7) +
+      geom_sf(aes(color = pred_fct), linewidth = 0.3) +
+      scale_color_manual(values = c(Episodic = p7_color_episodic,
+                                    `Not episodic` = p7_color_not_episodic,
+                                    `Not classified` = 'grey50'),
+                         name = 'Predicted\nclass') 
+    ggsave(file_out, region_predict_map, width = 6, height = 3, units = 'in', dpi = 500)
+    return(file_out)
+  }, format = 'file'),
+  
+  # Individual states
+  tar_target(p7_predict_episodic_map_png, {
+    file_out <- sprintf('7_Disseminate/out/Fig4_predict_map_%s.png', 
+                        unique(p7_comid_xwalk_grp$region_fname))
+    region_predict_map <- huc_flowlines %>%
+      right_join(p7_comid_xwalk_grp, by = 'nhd_comid') %>% 
+      left_join(p6_predict_episodic, by = 'nhd_comid') %>% 
+      ggplot() +
+      theme_bw(base_size = 9) +
+      ggspatial::annotation_map_tile(type = 'cartolight', zoom = 8) +
+      geom_sf(aes(color = pred_fct), linewidth = 0.3) +
       scale_color_manual(values = c(Episodic = p7_color_episodic,
                                     `Not episodic` = p7_color_not_episodic,
                                     `Not classified` = 'grey50'),
                          name = 'Predicted\nclass') +
       ggtitle(sprintf('Predicted class for %s', unique(p7_comid_xwalk_grp$region)))
-    ggsave(file_out, region_predict_map, width = 3.25, height = 3.25, units = 'in', dpi = 250)
+    ggsave(file_out, region_predict_map, width = 6, height = 4, units = 'in', dpi = 500)
     return(file_out)
   }, pattern = map(p7_comid_xwalk_grp), format = 'file'),
   
+  # Watershed of interest
+  tar_target(p7_watershedmap, {
+    # Find starting comid
+    startComid =  discover_nhdplus_id(sf::st_sfc(sf::st_point(c(-89.1245, 42.809)),
+                                              crs = 4326))
+    
+    upstreamids = p6_upstream_comids %>% filter(nhd_comid == startComid) %>% 
+      select(nhd_comid = nhd_comid_upstream)
+    
+    file_out <- sprintf('7_Disseminate/out/Fig4_predict_map_%s.png', 
+                        startComid)
+
+      region_predict_map <- huc_flowlines %>%
+        right_join(upstreamids, by = 'nhd_comid') %>% 
+        left_join(p6_predict_episodic, by = 'nhd_comid') %>% 
+        ggplot() +
+        theme_bw(base_size = 9) +
+        ggspatial::annotation_map_tile(type = 'cartolight', zoom = 11) +
+        geom_sf(aes(color = pred_fct), linewidth = 0.3) +
+        scale_color_manual(values = c(Episodic = p7_color_episodic,
+                                      `Not episodic` = p7_color_not_episodic,
+                                      `Not classified` = 'grey50'),
+                           name = 'Predicted\nclass') +
+        ggtitle('Yahara Watershed, Wisconsin')
+      
+    ggsave(file_out, region_predict_map, width = 3, height = 4, units = 'in', dpi = 500)
+    return(file_out)
+  }, format = 'file'),
+
   ##### Supplemental figures #####
   
   ###### SpC time series for ALL sites ######
