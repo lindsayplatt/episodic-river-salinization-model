@@ -215,9 +215,11 @@ p7_targets <- list(
   }, pattern = map(p7_comid_xwalk_grp), format = 'file'),
   
   # Watershed of interest
+  # Maumee -83.59542, 41.59138 
+  # Yahara -89.1245, 42.809
   tar_target(p7_watershedmap, {
     # Find starting comid
-    startComid =  discover_nhdplus_id(sf::st_sfc(sf::st_point(c(-89.1245, 42.809)),
+    startComid =  discover_nhdplus_id(sf::st_sfc(sf::st_point(c(-83.47631, 41.68858)),
                                               crs = 4326))
     
     upstreamids = p6_upstream_comids %>% filter(nhd_comid == startComid) %>% 
@@ -231,15 +233,15 @@ p7_targets <- list(
         left_join(p6_predict_episodic, by = 'nhd_comid') %>% 
         ggplot() +
         theme_bw(base_size = 9) +
-        ggspatial::annotation_map_tile(type = 'cartolight', zoom = 11) +
+        # ggspatial::annotation_map_tile(type = 'cartolight', zoom = 10) +
         geom_sf(aes(color = pred_fct), linewidth = 0.3) +
         scale_color_manual(values = c(Episodic = p7_color_episodic,
                                       `Not episodic` = p7_color_not_episodic,
                                       `Not classified` = 'grey50'),
                            name = 'Predicted\nclass') +
-        ggtitle('Yahara Watershed, Wisconsin')
+        ggtitle('Maumee Watershed, Ohio')
       
-    ggsave(file_out, region_predict_map, width = 3, height = 4, units = 'in', dpi = 500)
+    ggsave(file_out, region_predict_map, width = 4, height = 4, units = 'in', dpi = 500)
     return(file_out)
   }, format = 'file'),
 
