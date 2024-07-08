@@ -5,9 +5,9 @@ compilationPlot <- function(out_file, rf_model_importance,
                                       box_colors) {
   
   ##################### FIRST PLOT (importance) ##################
-  attribute_order <- rev(rf_model_importance$attribute)
+  rev.attribute_order <- rev(rf_model_importance$attribute)
   
-  display_name_in_order <- tibble(attribute = attribute_order) %>% 
+  display_name_in_order <- tibble(attribute = rev.attribute_order) %>% 
     left_join(attribute_name_xwalk, by = 'attribute') %>%
     mutate(display_name = if_else(display_name == 'Watershed Road Salt (kg/km2)', 
                                   'Salt (kg/km2)', display_name)) %>% 
@@ -19,7 +19,7 @@ compilationPlot <- function(out_file, rf_model_importance,
   }
   
   data_to_plot <- rf_model_importance %>% 
-    mutate(attr_fact = attribute_as_factor(attribute, attribute_order, display_name_in_order))
+    mutate(attr_fact = attribute_as_factor(attribute, rev.attribute_order, display_name_in_order))
   
   p_importance <- ggplot(data_to_plot, aes(x = importance, y = attr_fact)) +
     geom_point(size = 1, color = episodicColor) +
@@ -43,6 +43,14 @@ compilationPlot <- function(out_file, rf_model_importance,
     xlab('Importance index')
 
   ##################### SECOND PLOT (partial dependence) ################## 
+  attribute_order <- rf_model_importance$attribute
+  
+  display_name_in_order <- tibble(attribute = attribute_order) %>% 
+    left_join(attribute_name_xwalk, by = 'attribute') %>%
+    mutate(display_name = if_else(display_name == 'Watershed Road Salt (kg/km2)', 
+                                  'Salt (kg/km2)', display_name)) %>% 
+    pull(display_name)
+  
   # Use the actual values of the attributes to add a rug on the bottom so 
   # we can tell which patterns of dependence for given attributes are 
   # maybe just artifacts of a lack of input data.
