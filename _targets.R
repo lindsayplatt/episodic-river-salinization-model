@@ -28,7 +28,6 @@ tar_option_set(
     'Rarr', # Needed to download NWM streamflow; devtools::install_github(repo = 'grimbough/Rarr')
     'raster',
     'sbtools',
-    'scales', # for axis ticks
     'scico',
     'sf',
     'tidytext',
