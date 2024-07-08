@@ -71,7 +71,7 @@ create_episodic_criteria_fig <- function(out_file, sites_sf, all_site_categories
   
   # Combine the two maps so that they are vertical
   p_maps <- cowplot::plot_grid(p_episodic, p_notepisodic, nrow=2, 
-                               labels=c("(a)", "(b)"), label_size = 10)
+                               labels=c("(a)", "(b)"), label_size = 8)
     
   # Criteria of episodic vs not  
   p_criteria <- sites_category_criteria %>% 
@@ -82,7 +82,7 @@ create_episodic_criteria_fig <- function(out_file, sites_sf, all_site_categories
     scale_fill_manual(values = c(`Not episodic` = not_episodic_col, 
                                  Episodic = episodic_col),
                       name = NULL) +
-    theme_bw() +
+    theme_bw(base_size = 9) +
     theme(legend.position = 'none',
           panel.grid = element_blank(),
           axis.title.x = element_text(vjust = -2),
@@ -93,7 +93,7 @@ create_episodic_criteria_fig <- function(out_file, sites_sf, all_site_categories
 
   png(out_file, width = 6.5, height = 3.25, units='in', res=500)
   print(cowplot::plot_grid(p_maps, p_criteria, nrow=1, labels=c("", "(c)"), 
-                           label_size = 10, rel_widths = c(0.35, 0.65)))
+                           label_size = 8, rel_widths = c(0.4, 0.6)))
   dev.off()
   
   return(out_file)
