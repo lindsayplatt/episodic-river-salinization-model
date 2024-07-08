@@ -29,6 +29,8 @@ create_episodic_plotlist <- function(ts_sc, sites_episodic, episodic_col, not_ep
       # Convert station names into title case but keep states capitalized
       separate(station_nm, c('station', 'state'), sep = ', ') %>% 
       mutate(station = str_to_title(station)) %>% 
+      mutate(station = gsub("At", "\n", station)) %>% 
+      mutate(station = gsub("Near", "\n", station)) %>% 
       unite(station_nm, station, state, sep = ', ') %>% 
       mutate(facet_title = sprintf('%s\nNWIS Site %s', station_nm, site_no))
   } else {
@@ -73,17 +75,17 @@ create_episodic_plotlist <- function(ts_sc, sites_episodic, episodic_col, not_ep
                                     `Winter date (not episodic site)` = not_episodic_col,
                                     `Non-winter date` = 'grey70')) +
       facet_wrap(vars(site_no_ord), scales='free', nrow=nrow) +
-      ylab('Specific conductance, µS/cm at 25°C') + 
-      theme_bw() +
-      theme(text = element_text(size=10), 
+      ylab('Specific Conductance, µS/cm at 25°C') + 
+      theme_bw(base_size = 9) +
+      theme(#text = element_text(size=10), 
             axis.text.x = element_text(size=8, angle=20, hjust=1),
             axis.title.y = element_text(vjust = 1.5),
             axis.title.x = element_blank(),
             legend.title = element_blank(),
-            legend.text = element_text(size=12),
+            legend.text = element_text(size=8),
             legend.position = "bottom",
             strip.background = element_blank(),
-            strip.text = element_text(size = 10, face = 'bold'),
+            strip.text = element_text(size = 9, face = 'bold'),
             strip.clip = "off",
             plot.margin = unit(c(0.5,0.5,0,0.5), 'lines'))
   }
