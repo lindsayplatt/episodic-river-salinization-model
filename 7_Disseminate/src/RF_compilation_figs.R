@@ -27,7 +27,7 @@ compilationPlot <- function(out_file, rf_model_importance,
                      xend = importance + importance_sd,
                      yend = attr_fact), linewidth = 1,
                  color = episodicColor) +
-    scale_x_continuous(n.breaks = 3) +
+    scale_x_continuous(breaks = c(0.05, 0.1)) +
     theme_bw(base_size = 9) +
     theme(text = element_text(color = 'grey30'),
           axis.title.y = element_blank(),
@@ -40,7 +40,7 @@ compilationPlot <- function(out_file, rf_model_importance,
           strip.background = element_blank(),
           strip.text = element_text(face = 'bold'),
           plot.margin = unit(c(0.5,0,1,0.5), 'lines')) +
-    xlab('Gini importance index')
+    xlab('Importance index')
 
   ##################### SECOND PLOT (partial dependence) ################## 
   # Use the actual values of the attributes to add a rug on the bottom so 
@@ -124,7 +124,7 @@ CCCCC
   #   theme(plot.tag = element_text(size = 8)); p
  
   top_row <- plot_grid(p_importance, p_pdp, labels = c('(a)', '(b)'), label_size =8,
-                       rel_widths = c(1, 2))
+                       rel_widths = c(0.9, 2))
   p = plot_grid(top_row, p_boxes, labels = c('', '(c)'), label_size = 8, ncol = 1)
   
   ggsave(out_file, p, width = 6.5, height = 5, dpi = 500)
