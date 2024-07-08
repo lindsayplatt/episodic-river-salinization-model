@@ -7,6 +7,7 @@ source('7_Disseminate/src/importance_figs.R')
 source('7_Disseminate/src/attribute_boxplot_figs.R')
 source('7_Disseminate/src/category_map_figs.R')
 source('7_Disseminate/src/episodic_detection_figs.R')
+source('7_Disseminate/src/RF_compilation_figs.R')
 
 p7_targets <- list(
   
@@ -47,15 +48,18 @@ p7_targets <- list(
   
   tar_target(p7_episodic_examples_plot, {
     example_episodic_sites <- c('02042500', '01481500', '04166500') # Richmond, Wilmington, Detroit
-    example_not_episodic_sites <- c('01481000', '03183500', '04176500') # NW of Wilmington, SE of Philly, West Virginia, S of Detroit
-    p3_ts_sc_qualified %>% 
-      filter(site_no %in% c(example_episodic_sites, example_not_episodic_sites)) %>%
-      create_episodic_plotlist(example_episodic_sites, p7_color_episodic, 
-                               p7_color_not_episodic, nrow=2, addNWISName = TRUE) 
+    example_not_episodic_sites <- c('05062130', '03183500', '04176500') # Red River, SE of Philly, West Virginia, S of Detroit
+    ts_sc = p3_ts_sc_qualified %>% 
+      filter(site_no %in% c(example_episodic_sites, example_not_episodic_sites))
+    
+    create_episodic_plotlist(ts_sc, sites_episodic = example_episodic_sites, 
+                               episodic_col = p7_color_episodic, 
+                               not_episodic_col = p7_color_not_episodic, 
+                               nrow=2, addNWISName = TRUE) 
   }),
   tar_target(p7_episodic_examples_png, {
     out_file <- '7_Disseminate/out/Fig2_episodic_ts.png'
-    png(out_file, width = 13, height = 6.5, units='in', res=500)
+    png(out_file, width = 6.5, height = 5, units='in', res=500)
     print(p7_episodic_examples_plot)
     dev.off()
     return(out_file)
@@ -96,19 +100,33 @@ p7_targets <- list(
                                          `Not episodic` = p7_color_not_episodic)), 
              format='file'),
   
+  # Compilation plot of above three figures
+  tar_target(p7_rf_results_episodic_png, compilationPlot(
+        out_file = '7_Disseminate/out/Fig3_episodic_rf_results.png',
+        rf_model_importance = p7_overall_attr_importance_episodic, 
+        attribute_name_xwalk = p7_attr_name_xwalk, 
+        episodicColor = p7_color_episodic,
+        pdp_data = p5_rf_attr_partdep, 
+        real_attribute_values = p5_site_attr_rf_optimal,
+        attribute_order = p7_overall_attr_importance_episodic$attribute,
+        box_colors = c(Episodic=p7_color_episodic, 
+                       `Not episodic` = p7_color_not_episodic)), 
+        format='file'),
+  
+  
   # Note that `cowplot::draw_image()` requires that you have `magick`
-  tar_target(p7_rf_results_episodic_png, {
-    out_file <- '7_Disseminate/out/Fig3_episodic_rf_results.png'
-    fig_importance <- cowplot::ggdraw() + cowplot::draw_image(p7_importance_episodic_png)
-    fig_partDep <- cowplot::ggdraw() + cowplot::draw_image(p7_partDep_episodic_png)
-    fig_boxes <- cowplot::ggdraw() + cowplot::draw_image(p7_attr_episodic_boxplots_png)
-    png(out_file, width = 6.5, height = 3.25, units = 'in', res = 500)
-    print(cowplot::plot_grid(fig_importance, fig_partDep, fig_boxes, 
-                             nrow=1, label_size=10,
-                             labels=sprintf('(%s)', letters[1:3])))
-    dev.off()
-    return(out_file)
-  }, format='file'),
+  # tar_target(p7_rf_results_episodic_png, {
+  #   out_file <- '7_Disseminate/out/Fig3_episodic_rf_results.png'
+  #   fig_importance <- cowplot::ggdraw() + cowplot::draw_image(p7_importance_episodic_png)
+  #   fig_partDep <- cowplot::ggdraw() + cowplot::draw_image(p7_partDep_episodic_png)
+  #   fig_boxes <- cowplot::ggdraw() + cowplot::draw_image(p7_attr_episodic_boxplots_png)
+  #   png(out_file, width = 6.5, height = 3.25, units = 'in', res = 500)
+  #   print(cowplot::plot_grid(fig_importance, fig_partDep, fig_boxes, 
+  #                            nrow=1, label_size=8,
+  #                            labels=sprintf('(%s)', letters[1:3])))
+  #   dev.off()
+  #   return(out_file)
+  # }, format='file'),
   
   ###### Figure 4: Prediction maps for the full region #####
   
