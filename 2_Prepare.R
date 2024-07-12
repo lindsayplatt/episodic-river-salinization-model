@@ -83,8 +83,9 @@ p2_targets <- list(
   # Extract the catchments as polygons and summarize total salt per catchment
   # This includes any catchments that will only be used for upstream calculations
   tar_target(p2_nhdplus_catchment_sf, extract_nhdplus_geopackage_layer(p1_nhdplus_catchments_gpkg)),
-  tar_target(p2_nhdplus_catchment_salt, aggregate_road_salt_per_poly(road_salt_rast = p2_road_salt_rast, 
-                                                                     polys_sf = p2_nhdplus_catchment_sf)),
+  tar_target(p2_nhdplus_catchment_salt, aggregate_road_salt_per_poly(road_salt_rast = NULL, 
+                                                                     polys_sf = p2_nhdplus_catchment_sf,
+                                                                    rasterTifs = p1_sb_road_salt_tif)),
   
   # Before summarizing the rest of the data below, the NHD COMID data for what 
   # is included in the COMID to site crosswalk and the upstream COMIDs was 
