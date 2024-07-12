@@ -19,7 +19,7 @@
 #' @returns a list of ggplots
 #' 
 create_episodic_plotlist <- function(ts_sc, sites_episodic, episodic_col, not_episodic_col,
-                                     winter_months = c(12,1,2,3), nrow=5, addNWISName = FALSE) {
+                                     winter_months = c(12,1,2,3), nrow=6, addNWISName = FALSE) {
   
   unique_sites <- unique(ts_sc$site_no)
   
@@ -48,7 +48,7 @@ create_episodic_plotlist <- function(ts_sc, sites_episodic, episodic_col, not_ep
     mutate(site_no_ord = factor(site_no, levels = .$site_no, labels = .$facet_title)) %>% 
     group_by(site_no_ord) %>% 
     # Prepare each site to be shown in a specific group's set of facets
-    mutate(grp_num = ceiling(cur_group_id()/25)) %>% 
+    mutate(grp_num = ceiling(cur_group_id()/30)) %>% 
     ungroup()
   
   ts_sc_category <- ts_sc %>% 
