@@ -23,7 +23,8 @@ identify_upstream_comids_hy <- function(comid_in, flines_network, index_ids, fro
   # Using `split = TRUE` to get the terminalID
   get_sorted_HD(flines_network, outlets = comid_in, split=TRUE, index_ids, froms) %>% 
   dplyr::select(nhd_comid = terminalID, 
-           nhd_comid_upstream = comid)
+           nhd_comid_upstream = comid) %>% 
+  mutate(huc2 = flines_network$huc2[1])
 }
 
 #' @title Get Sorted Network
