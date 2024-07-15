@@ -66,7 +66,7 @@ p7_targets <- list(
   }),
   tar_target(p7_episodic_examples_png, {
     out_file <- '7_Disseminate/out/Fig2_episodic_ts.png'
-    png(out_file, width = 6.5, height = 5, units='in', res=500)
+    png(out_file, width = 6.5, height = 4.5, units='in', res=500)
     print(p7_episodic_examples_plot)
     dev.off()
     return(out_file)

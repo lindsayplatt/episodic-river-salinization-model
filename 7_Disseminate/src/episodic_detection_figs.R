@@ -84,8 +84,10 @@ create_episodic_plotlist <- function(ts_sc, sites_episodic, episodic_col, not_ep
             legend.title = element_blank(),
             legend.text = element_text(size=8),
             legend.position = "bottom",
+            legend.margin = ggplot2::margin(0,0,0,0),
+            legend.box.spacing = ggplot2::margin(0.1),
             strip.background = element_blank(),
-            strip.text = element_text(size = 9, face = 'bold'),
+            strip.text = element_text(size = 8, face = 'bold'),
             strip.clip = "off",
             plot.margin = unit(c(0.5,0.5,0,0.5), 'lines'))
   }
