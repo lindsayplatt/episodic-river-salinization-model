@@ -222,7 +222,7 @@ p7_targets <- list(
                                     `Not episodic` = p7_color_not_episodic,
                                     `Not classified` = 'grey50'),
                          name = 'Predicted\nclass') 
-    ggsave(file_out, region_predict_map, width = 6, height = 3, units = 'in', dpi = 500)
+    ggsave(file_out, region_predict_map, height = 2.5, units = 'in', dpi = 500)
     return(file_out)
   }, format = 'file'),
   
@@ -246,7 +246,7 @@ p7_targets <- list(
     return(file_out)
   }, pattern = map(p7_comid_xwalk_grp), format = 'file'),
   
-  ############################ Plot watersheds of interest ############################
+  ############################ Watershed Maps ############################
   # Maumee -83.59542, 41.59138 
   # Yahara -89.1245, 42.809
   tar_target(p7_watershedmap_maumeee, {
@@ -278,10 +278,45 @@ p7_targets <- list(
                                       `Not classified` = 'grey50'),
                            name = 'Predicted\nclass') 
         
-    ggsave(file_out, p.maumee + ggtitle('Maumee Watershed, Ohio'), 
-           height = 2.75, units = 'in', dpi = 500)
+    ggsave(file_out, p.maumee, 
+           height = 2.5, units = 'in', dpi = 500)
     
     return(p.maumee)
+  }),
+  tar_target(p7_watershedmap_cuyahoga, {
+    # Find starting comid
+    outletPoint = sf::st_sfc(sf::st_point(c(-81.70296, 41.49730)),
+                             crs = 4326)
+    
+    startComid =  discover_nhdplus_id(outletPoint)
+    usehuc = get_huc(AOI = outletPoint, type = 'huc02') %>% pull(huc2) %>% as.numeric()
+    # useUpstream <- get(paste0('p6_huc',usehuc,'_upstream_comids_df')) # argh this doesn't work in targets
+    
+    # Hardcode for now which sucks 
+    upstreamids = p6_huc4_upstream_comids_df %>% filter(nhd_comid == startComid) %>% 
+      select(nhd_comid = nhd_comid_upstream)
+    
+    file_out <- sprintf('7_Disseminate/out/Fig4_predict_map_%s.png', 
+                        startComid)
+    
+    p.cuyahoga <-p7_huc_flowlines_distinct %>%
+      right_join(upstreamids, by = 'nhd_comid') %>% 
+      left_join(p6_predict_episodic, by = 'nhd_comid') %>% 
+      filter(pred_fct %in% c('Not episodic', 'Episodic')) %>% 
+      ggplot() +
+      theme_bw(base_size = 7) +
+      ggspatial::annotation_map_tile(type = 'cartolight', zoom = 11) +
+      geom_sf(aes(color = pred_fct), linewidth = 0.3) +
+      scale_x_continuous(n.breaks = 4) +
+      scale_color_manual(values = c(Episodic = p7_color_episodic,
+                                    `Not episodic` = p7_color_not_episodic,
+                                    `Not classified` = 'grey50'),
+                         name = 'Predicted\nclass') 
+    
+    ggsave(file_out, p.cuyahoga, 
+           height = 2.5, units = 'in', dpi = 500)
+    
+    return(p.cuyahoga)
   }),
   tar_target(p7_watershedmap_yahara, {
     # Find starting comid
@@ -306,14 +341,50 @@ p7_targets <- list(
       theme_bw(base_size = 7) +
       ggspatial::annotation_map_tile(type = 'cartolight', zoom = 11) +
       geom_sf(aes(color = pred_fct), linewidth = 0.3) +
+      scale_x_continuous(n.breaks = 3) +
       scale_color_manual(values = c(Episodic = p7_color_episodic,
                                     `Not episodic` = p7_color_not_episodic,
                                     `Not classified` = 'grey50'),
                          name = 'Predicted\nclass')
       
-    ggsave(file_out, p.yahara + ggtitle('Yahara Watershed, Wisconsin'), 
-          height = 2.75, units = 'in', dpi = 500)
+    ggsave(file_out, p.yahara, 
+          height = 2.5, units = 'in', dpi = 500)
     return(p.yahara)
+  }),
+  tar_target(p7_watershedmap_housatonic, {
+    # Find starting comid
+    outletPoint = sf::st_sfc(sf::st_point(c(-73.10991, 41.203129)),
+                             crs = 4326)
+    
+    startComid =  discover_nhdplus_id(outletPoint)
+    usehuc = get_huc(AOI = outletPoint, type = 'huc02') %>% pull(huc2) %>% as.numeric()
+    # useUpstream <- get(paste0('p6_huc',usehuc,'_upstream_comids_df')) # argh this doesn't work in targets
+    
+    # Hardcode for now which sucks 
+    upstreamids = p6_huc1_upstream_comids_df %>% filter(nhd_comid == startComid) %>% 
+      select(nhd_comid = nhd_comid_upstream)
+    
+    file_out <- sprintf('7_Disseminate/out/Fig4_predict_map_%s.png', 
+                        startComid)
+    
+    p.housatonic <- p7_huc_flowlines_distinct %>%
+      right_join(upstreamids, by = 'nhd_comid') %>% 
+      left_join(p6_predict_episodic, by = 'nhd_comid') %>% 
+      filter(pred_fct %in% c('Not episodic', 'Episodic')) %>% 
+      ggplot() +
+      theme_bw(base_size = 7) +
+      ggspatial::annotation_map_tile(type = 'cartolight', zoom = 11) +
+      geom_sf(aes(color = pred_fct), linewidth = 0.3) +
+      scale_x_continuous(n.breaks = 2) +
+      scale_color_manual(values = c(Episodic = p7_color_episodic,
+                                    `Not episodic` = p7_color_not_episodic,
+                                    `Not classified` = 'grey50'),
+                         name = 'Predicted\nclass') 
+    
+    ggsave(file_out, p.housatonic, 
+           height = 2.5, units = 'in', dpi = 500)
+    
+    return(p.housatonic)
   }),
   
   ############################ Supplemental figures ############################
