@@ -20,7 +20,7 @@ p1_targets <- list(
   ###### NWIS DATA 0: Set download configs for streamflow (Q) & specific conductivity (SC) ######
   
   tar_target(p1_nwis_start_date, as.Date('1950-01-01')), 
-  tar_target(p1_nwis_end_date, as.Date('2023-12-31')), 
+  tar_target(p1_nwis_end_date, as.Date('2024-03-31')), 
   tar_target(p1_nwis_pcode_sc, '00095'), # NWIS specific conductance code
   tar_target(p1_nwis_pcode_q, '00060'), # NWIS streamflow code
   tar_target(p1_nwis_min_years, 3), # Minimum number of years required
