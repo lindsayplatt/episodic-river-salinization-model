@@ -231,7 +231,7 @@ download_nhdplus_catchments <- function(out_file, comids) {
                      return_data = FALSE, 
                      overwrite = TRUE)
       subset_nhdplus(comids = as.integer(comids[(grp_n+1):length(comids)]),
-                     output_file = out_file_split[1],
+                     output_file = out_file_split[2],
                      nhdplus_data = "download", 
                      flowline_only = FALSE,
                      return_data = FALSE, 
