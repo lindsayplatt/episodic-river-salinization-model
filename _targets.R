@@ -48,8 +48,9 @@ source('4_EpisodicSalinization.R')
 source('5_DefineCharacteristics.R')
 source('6_PredictClass_HD.R')
 source('7_Disseminate.R')
+source('8_Validate.R')
 
 select <- dplyr::select # The raster pkg keeps overriding this one so make sure this is correct
 
 c(p1_targets, p2_targets, p3_targets,
-  p4_targets, p5_targets, p6_targets, p7_targets)
+  p4_targets, p5_targets, p6_targets, p7_targets, p8_targets)

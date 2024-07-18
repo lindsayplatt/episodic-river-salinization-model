@@ -2,6 +2,7 @@
 # Number of SC sites
 p8_targets <- list(
 
+  ################################## 1) Download ##################################
   # NWIS sites that don't have Q
   tar_target(p8_nwis_sc_notqualified, 
              bind_rows(p1_nwis_sc_sites_qualified) %>% 
@@ -15,8 +16,8 @@ p8_targets <- list(
                tar_group(),
              iteration = 'group'),
   
-  ###### NWIS DATA: Download the SC data and save as files in `8_Validate/out_nwis` ######
   
+  ###### NWIS DATA: Download the SC data and save as files in `8_Validate/out_nwis` ######
   tar_target(p8_nwis_sc_data_feather,
              download_nwis_data(
                out_file = sprintf('8_Validate/out_nwis/sc_%s_%03d.feather',
@@ -47,7 +48,7 @@ p8_targets <- list(
                                           "72169", "72170", "72171")) %>%
                pull(site_no) %>% unique()), 
   
-  ##### TIMESERIES DATA PREP #####
+  ################################## 2) Prepare ##################################
   ###### TS DATA 1: Calc daily mean SC from instantaneous data ######
   
   # Processing UV files by combining instantaneous data into daily data
@@ -68,10 +69,7 @@ p8_targets <- list(
                                  param_colname = 'SpecCond'),
              format = 'file'), 
   
-  ##### TS FILTERING: Filter sites and data as part of processing in `2_Prepare` #####
-  
-  ##### Step 1: identify sites that meet (or don't) temporal criteria #####
-  
+  ################################## 3) Filter ##################################
   # Identify sites that have at least 3 years 
   tar_target(p8_ts_sc_winter_qualified,
              filter_winter(p8_ts_sc_dv_feather,
@@ -96,21 +94,47 @@ p8_targets <- list(
                                              keep_sites = p8_ts_sc_temporal_qualified_sites,
                                              remove_sites = p8_sites_unqualified)),
   
+  # Download metadata for just qualified sites
+  tar_target(p8_nwis_sc_sites_metadata_qualified,
+             download_nwis_metadata(unique(p8_ts_sc_qualified$site_no))),
+  
   # Create site ID to nhd COMID crosswalk 
   tar_group_size(p8_nwis_sc_sites_sf, 
-                 fetch_site_locations(p8_nwis_sc_sites_metadata),
+                 fetch_site_locations(p8_nwis_sc_sites_metadata_qualified),
                  size = 50),
   
   # Then, query NHDPlus using the site locations to identify
-  # the NHD COMID of the closest reach. Two of the COMIDs are 
-  # reused for the same sites:
-  #   COMID 5866457 is linked to site_no '01104455' and '01104460'
-  #   COMID 11079215 is linked to site_no '07381324' and '07381328'
+  # the NHD COMID of the closest reach. 
   tar_target(p8_nwis_site_nhd_comid_ALL_xwalk, 
              identify_site_comids(p8_nwis_sc_sites_sf),
              pattern = map(p8_nwis_sc_sites_sf)),
   
-  ###### SpC time series for ALL sites ######
+  ################################## 4) Episodic Salinization ##################################
+  # Normalize the specific conductance before calculating peaks
+  tar_target(p8_ts_sc_norm, normalize_data_bysite(p8_ts_sc_qualified, 'SpecCond')),
+  
+  # Calculate event peaks for all sites 
+  tar_target(p8_ts_sc_peaks, {
+    p8_ts_sc_norm %>% 
+      split(.$site_no) %>%
+      map(~find_event_peaks(ts_data = .x,
+                            date_colname = 'dateTime',
+                            param_colname = 'SpecCond_norm',
+                            sb_pk_thresh = 0.000005,
+                            sf_pk_thresh = 0)
+      ) %>% bind_rows()
+  }),
+  
+  # Now summarize the peak information and filter to just those sites that meet 
+  # our criteria for exhibiting "episodic" patterns in winter.
+  tar_target(p8_ts_sc_peak_summary, 
+             summarize_salt_peaks(p8_ts_sc_peaks, 
+                                  num_peaks_per_year = 3, 
+                                  spec_cond_buffer = 200)),
+  tar_target(p8_episodic_sites, filter(p8_ts_sc_peak_summary, is_episodic)$site_no),
+  
+  
+  ################################## 6) Predict Class ##################################
   tar_target(p8_ts_sc_qualified_nhd, 
                     p8_ts_sc_qualified %>% 
                     left_join(p8_nwis_site_nhd_comid_ALL_xwalk %>% 
@@ -119,15 +143,26 @@ p8_targets <- list(
   tar_target(p8_predfct,
              p6_predict_episodic %>% inner_join(p8_nwis_site_nhd_comid_ALL_xwalk)),
   
-  tar_target(p8_episodic_sites,
+  tar_target(p8_predict_episodic_sites,
              p8_predfct %>% filter(pred == 'Episodic') %>% pull(site_no)),
   
+  ################################## 7) Disseminate ##################################
   tar_target(p8_episodic_plotlist, create_episodic_plotlist(p8_ts_sc_qualified,
-                                                            p8_episodic_sites,
+                                                            p8_predict_episodic_sites,
                                                             p7_color_episodic,
                                                             p7_color_not_episodic)),
   tar_target(p8_episodic_png,
-             ggsave(filename = sprintf('8_Validate/out/SI_episodic_grp%s.png', names(p8_episodic_plotlist)),
+             ggsave(filename = sprintf('8_Validate/out/SI_validate_grp%s.png', names(p8_episodic_plotlist)),
                     plot = p8_episodic_plotlist[[1]], height = 8, width = 6.5, dpi = 500),
-             format = 'file', pattern = map(p8_episodic_plotlist))
+             format = 'file', pattern = map(p8_episodic_plotlist)), 
+  
+  ###### Map of all qualified sites ######
+  
+  tar_target(p8_all_sitemap_png, {
+    out_file <- '8_Validate/out/sitemap_validation.png'
+    p_map <- map_category_sites(p8_nwis_sc_sites_sf, p8_nwis_sc_sites_sf$site_no, p1_conus_state_cds, 
+                                site_color = 'grey30', map_title = 'Validation sites')
+    ggsave(out_file, p_map, width = 3.25, height = 3.25, dpi = 500, bg='white')
+    return(out_file)
+  }, format='file')
 )
