@@ -18,7 +18,8 @@
 #' 
 #' @returns a list of ggplots
 #' 
-create_episodic_plotlist <- function(ts_sc, sites_episodic, episodic_col, not_episodic_col,
+create_episodic_plotlist <- function(ts_sc, sites_episodic, 
+                                     high_col, low_col, not_episodic_col,
                                      winter_months = c(12,1,2,3), nrow=6, addNWISName = FALSE) {
   
   unique_sites <- unique(ts_sc$site_no)
@@ -42,7 +43,9 @@ create_episodic_plotlist <- function(ts_sc, sites_episodic, episodic_col, not_ep
   # Prepare information for ordering sites and adding horizontal lines to each plot
   site_category <- site_table %>% 
     # Order sites based on whether or not they were episodic
-    mutate(site_category = ifelse(site_no %in% sites_episodic, 'Episodic', 'Not episodic')) %>% 
+    left_join(sites_episodic) %>% 
+    rename(site_category = is_episodic) %>% 
+    # mutate(site_category = case_when(site_no %in% sites_episodic, 'Episodic', 'Not episodic')) %>% 
     arrange(site_category, site_no) %>% 
     # Setup site number as an ordered factor to control order of facets
     mutate(site_no_ord = factor(site_no, levels = .$site_no, labels = .$facet_title)) %>% 
@@ -57,11 +60,10 @@ create_episodic_plotlist <- function(ts_sc, sites_episodic, episodic_col, not_ep
     left_join(site_category, by = 'site_no') %>% 
     # Add a column that gives the category to change the winter color depending
     # on whether or not that site was found to be episodic
-    mutate(winter_behavior = ifelse(is_winter & site_category == 'Episodic', 
-                                 'Winter date (episodic site)', 
-                                 ifelse(is_winter & site_category == 'Not episodic', 
-                                        'Winter date (not episodic site)', 
-                                        'Non-winter date'))) %>% 
+    mutate(winter_behavior = case_when(is_winter & site_category == 'high' ~ 'Winter date (high site)', 
+                                       is_winter & site_category == 'low' ~ 'Winter date (low site)',
+                                       is_winter & site_category == 'none' ~ 'Winter date (not episodic site)',
+                                       !is_winter ~ 'Non-winter date')) %>% 
     # Now split SC ts data by group number for plotting
     split(.$grp_num)
   
@@ -71,7 +73,8 @@ create_episodic_plotlist <- function(ts_sc, sites_episodic, episodic_col, not_ep
   plot_episodic_facets <- function(ts_sc, ts_sc_info) {
     ggplot(data = ts_sc) +
       geom_path(aes(x = dateTime, y = SpecCond, color = winter_behavior, group=year), na.rm = TRUE) +
-      scale_color_manual(values = c(`Winter date (episodic site)` = episodic_col, 
+      scale_color_manual(values = c(`Winter date (high site)` = high_col, 
+                                    `Winter date (low site)` = low_col, 
                                     `Winter date (not episodic site)` = not_episodic_col,
                                     `Non-winter date` = 'grey70')) +
       facet_wrap(vars(site_no_ord), scales='free', nrow=nrow) +

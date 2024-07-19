@@ -48,25 +48,34 @@ map_category_sites <- function(sites_sf, category_sites, states_to_include, site
 #' @param states_to_include a vector of state two-letter abbreviation codes to
 #' create the map object using `usmap` package fxns.
 #' @param episodic_col character string indicating what color to give episodic data
-#' @param not_episodic_col character string indicating what color to give not episodic data
+#' @param not_episodic_color character string indicating what color to give not episodic data
 #' 
 #' @returns a character string giving the location of the saved figure file
 #' 
 create_episodic_criteria_fig <- function(out_file, sites_sf, all_site_categories, 
                                          sites_category_criteria, states_to_include, 
-                                         episodic_col, not_episodic_col) {
+                                         high_col, low_col, not_episodic_color) {
   
   # Map of episodic sites
-  episodic_sites <- all_site_categories %>% filter(site_category == 'Episodic') %>% pull(site_no)
-  p_episodic <- map_category_sites(sites_sf, episodic_sites, states_to_include, 
-                                   episodic_col, 'Episodic sites', 
+  high_sites <- all_site_categories %>% filter(site_category == 'high') %>% 
+    pull(site_no)
+  p_high <- map_category_sites(sites_sf, high_sites, states_to_include, 
+                                   high_col, 'High sites', 
                                    point_title_subtitle_sizes = c(1.5, 10, 8)) +
-    theme(plot.title.position = 'plot')
+                                   theme(plot.title.position = 'plot')
+  
+  # Map of low sites
+  low_sites <- all_site_categories %>% filter(site_category == 'low') %>% 
+    pull(site_no)
+  p_low <- map_category_sites(sites_sf, low_sites, states_to_include, 
+                                   low_col, 'Low sites', 
+                                   point_title_subtitle_sizes = c(1.5, 10, 8)) +
+                                   theme(plot.title.position = 'plot')
   
   # Map of not episodic sites
-  notepisodic_sites <- all_site_categories %>% filter(site_category == 'Not episodic') %>% pull(site_no)
+  notepisodic_sites <- all_site_categories %>% filter(site_category == 'none') %>% pull(site_no)
   p_notepisodic <- map_category_sites(sites_sf, notepisodic_sites, states_to_include, 
-                                      not_episodic_col, 'Not episodic sites', 
+                                      not_episodic_color, 'Not episodic sites', 
                                       point_title_subtitle_sizes = c(1.5, 10, 8))
   
   # # Combine the two maps so that they are vertical
@@ -75,12 +84,13 @@ create_episodic_criteria_fig <- function(out_file, sites_sf, all_site_categories
     
   # Criteria of episodic vs not  
   p_criteria <- sites_category_criteria %>% 
-    mutate(is_episodic = ifelse(is_episodic, 'Episodic', 'Not episodic')) %>% 
+    # mutate(is_episodic = ifelse(is_episodic, 'Episodic', 'Not episodic')) %>% 
     ggplot(aes(x = not_winter, y = winter, fill = is_episodic)) +
     geom_abline(slope = 1, intercept = 0) +
     geom_point(alpha = 0.5, size=2, shape = 21) +
-    scale_fill_manual(values = c(`Not episodic` = not_episodic_col, 
-                                 Episodic = episodic_col),
+    scale_fill_manual(values = c(none = not_episodic_color, 
+                                 high = high_col,
+                                 low = low_col),
                       name = NULL) +
     theme_bw(base_size = 9) +
     theme(legend.position = 'none',
@@ -88,15 +98,15 @@ create_episodic_criteria_fig <- function(out_file, sites_sf, all_site_categories
           axis.title.x = element_text(vjust = -2),
           axis.title.y = element_text(vjust = 2),
           plot.margin = unit(c(1.5,0.5,1,1), unit='line')) +
-    xlab('Non-Winter Median Peak SpC') +
-    ylab('Winter Median Peak SpC')
+    xlab('Non-Winter Mean Peak SpC') +
+    ylab('Winter Mean\nPeak SpC')
   
   # 1 column width
   png(out_file, width = 8.7, height = 15, units='cm', res=500)
 
-  print(cowplot::plot_grid(p_episodic, p_notepisodic, p_criteria,
-                           ncol=1, labels=c("(a)", "(b)", "(c)"), 
-                           label_size = 8, rel_heights = c(1,1,1)))
+  print(cowplot::plot_grid(p_high, p_low, p_notepisodic, p_criteria,
+                           ncol=2, labels=c("(a)", "(b)", "(c)"), 
+                           label_size = 8, rel_heights = c(1,1,1,1)))
   # print(cowplot::plot_grid(p_maps, p_criteria, nrow=1, labels=c("", "(c)"), 
   #                          label_size = 8, rel_widths = c(0.4, 0.6)))
   dev.off()

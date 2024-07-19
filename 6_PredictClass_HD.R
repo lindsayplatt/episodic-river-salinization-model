@@ -945,9 +945,9 @@ p6_targets <- list(
 
   tar_target(p6_predict_episodic, p6_attr_all %>%
                mutate(pred = as.character(predict(p5_rf_model_optimized, .))) %>%
-               replace_na(list(pred = 'Not classified')) %>%
-               mutate(pred_fct = factor(pred, ordered = TRUE,
-                                        levels = c('Episodic', 'Not episodic', 'Not classified'))) %>%
+               replace_na(list(pred = 'Not classified')) %>% 
+               mutate(pred_fct = factor(pred, 
+                                        levels = c('high', 'low', 'none'))) %>% 
                select(nhd_comid, pred, pred_fct) %>% 
                distinct()),
   

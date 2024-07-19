@@ -12,7 +12,8 @@ source('7_Disseminate/src/RF_compilation_figs.R')
 p7_targets <- list(
   
   # Define episodic vs not episodic colors
-  tar_target(p7_color_episodic, '#c28e0d'),
+  tar_target(p7_color_high, 'gold'),
+  tar_target(p7_color_low, '#c28e0d'),
   tar_target(p7_color_not_episodic, '#005271'),
   
   # Create a manual crosswalk between attribute names and display names
@@ -45,24 +46,33 @@ p7_targets <- list(
   ###### Figure 1: episodic vs not + qualifying criteria ######
   
   tar_target(p7_episodic_classification_png, 
-             create_episodic_criteria_fig('7_Disseminate/out/Fig1_episodic_results.png', 
-                                          p1_nwis_sc_sites_sf, p7_site_categories,
-                                          p4_ts_sc_peak_summary, p1_conus_state_cds, 
-                                          p7_color_episodic, p7_color_not_episodic), 
+             create_episodic_criteria_fig(out_file = '7_Disseminate/out/Fig1_episodic_results.png', 
+                                          sites_sf = p1_nwis_sc_sites_sf, 
+                                          all_site_categories = p7_site_categories,
+                                          sites_category_criteria = p4_ts_sc_peak_summary, 
+                                          states_to_include = p1_conus_state_cds,
+                                          high_col = p7_color_high,
+                                          low_col = p7_color_low, 
+                                          not_episodic_col = p7_color_not_episodic), 
              format='file'),
   
   ###### Figure 2: select SpC time series ######
   
   tar_target(p7_episodic_examples_plot, {
-    example_episodic_sites <- c('02042500', '01481500', '04166500') # Richmond, Wilmington, Detroit
-    example_not_episodic_sites <- c('05062130', '03183500', '04176500') # Red River, SE of Philly, West Virginia, S of Detroit
+    example_episodic_sites <- c('01408029', '04087119', '01104410') # Richmond, Wilmington, Detroit
+    example_not_episodic_sites <- c('03294570', '01668000', '03298250') # Red River, SE of Philly, West Virginia, S of Detroit
     ts_sc = p3_ts_sc_qualified %>% 
       filter(site_no %in% c(example_episodic_sites, example_not_episodic_sites))
     
-    create_episodic_plotlist(ts_sc, sites_episodic = example_episodic_sites, 
-                               episodic_col = p7_color_episodic, 
-                               not_episodic_col = p7_color_not_episodic, 
-                               nrow=2, addNWISName = TRUE) 
+    example_episodic_info = p4_ts_sc_peak_summary %>% 
+      filter(site_no %in% c(example_episodic_sites, example_not_episodic_sites))
+    
+    create_episodic_plotlist(ts_sc, 
+                             sites_episodic = example_episodic_info, 
+                             high_col = p7_color_high,
+                             low_col = p7_color_low, 
+                             not_episodic_col = p7_color_not_episodic,
+                             nrow=2, addNWISName = TRUE) 
   }),
   tar_target(p7_episodic_examples_png, {
     out_file <- '7_Disseminate/out/Fig2_episodic_ts.png'
@@ -85,16 +95,17 @@ p7_targets <- list(
              visualize_attr_importance('7_Disseminate/out/importance_episodic.png', 
                                        p7_overall_attr_importance_episodic,
                                        p7_attr_name_xwalk, 
-                                       point_seg_col = p7_color_episodic), 
+                                       point_seg_col = p7_color_high), 
              format='file'),
   
   # Partial dependence plots showing how probability varies by attribute value
   tar_target(p7_partDep_episodic_png, 
              create_partialDependence_miniPlots_figure('7_Disseminate/out/partDep_episodic.png', 
-                                                       p5_rf_attr_partdep, p5_site_attr_rf_optimal,
+                                                       p5_rf_attr_partdep, 
+                                                       p5_site_attr_rf_optimal,
                                                        p7_overall_attr_importance_episodic$attribute,
                                                        p7_attr_name_xwalk, 
-                                                       line_color = p7_color_episodic),
+                                                       line_color = p7_color_high),
              format = 'file'),
   
   # Boxplots of attribute values by classification
@@ -103,8 +114,9 @@ p7_targets <- list(
                                        p5_site_attr_rf_optimal,
                                        p7_overall_attr_importance_episodic$attribute,
                                        p7_attr_name_xwalk, 
-                                       c(Episodic=p7_color_episodic, 
-                                         `Not episodic` = p7_color_not_episodic)), 
+                                       c(high = p7_color_high, 
+                                         low = p7_color_low,
+                                         none = p7_color_not_episodic)), 
              format='file'),
   
   # Compilation plot of above three figures
@@ -112,12 +124,13 @@ p7_targets <- list(
         out_file = '7_Disseminate/out/Fig3_episodic_rf_results.png',
         rf_model_importance = p7_overall_attr_importance_episodic, 
         attribute_name_xwalk = p7_attr_name_xwalk, 
-        episodicColor = p7_color_episodic,
+        episodicColor = p7_color_high,
         pdp_data = p5_rf_attr_partdep, 
         real_attribute_values = p5_site_attr_rf_optimal,
         attribute_order = p7_overall_attr_importance_episodic$attribute,
-        box_colors = c(Episodic=p7_color_episodic, 
-                       `Not episodic` = p7_color_not_episodic)), 
+        box_colors = c(high = p7_color_high,
+                       low = p7_color_low,
+                       none = p7_color_not_episodic)), 
         format='file'),
   
   
@@ -213,15 +226,18 @@ p7_targets <- list(
      region_predict_map <- p7_huc_flowlines_distinct %>% 
       right_join(p7_comid_xwalk_grp, by = 'nhd_comid') %>% 
       left_join(p6_predict_episodic, by = 'nhd_comid') %>% 
-      filter(pred_fct %in% c('Not episodic', 'Episodic')) %>% 
+      filter(pred !=  'Not classified') %>% 
+      mutate(pred_fct = factor(pred, levels = c('high', 'low', 'none'))) %>% 
       ggplot() +
-      theme_bw(base_size = 7) +
-      ggspatial::annotation_map_tile(type = 'cartolight', zoom = 7) +
+      theme_bw(base_size = 9) +
+      ggspatial::annotation_map_tile(type = 'cartolight', zoom = 8) +
       geom_sf(aes(color = pred_fct), linewidth = 0.3) +
-      scale_color_manual(values = c(Episodic = p7_color_episodic,
-                                    `Not episodic` = p7_color_not_episodic,
+      scale_color_manual(values = c(high = p7_color_high,
+                                    low = p7_color_low,
+                                    none = p7_color_not_episodic,
                                     `Not classified` = 'grey50'),
                          name = 'Predicted\nclass') 
+     
     ggsave(file_out, region_predict_map, height = 2.5, units = 'in', dpi = 500)
     return(file_out)
   }, format = 'file'),
@@ -233,14 +249,17 @@ p7_targets <- list(
     region_predict_map <- p7_huc_flowlines_distinct %>% 
       right_join(p7_comid_xwalk_grp, by = 'nhd_comid') %>% 
       left_join(p6_predict_episodic, by = 'nhd_comid') %>% 
+      filter(pred !=  'Not classified') %>% 
+      mutate(pred_fct = factor(pred, levels = c('high', 'low', 'none'))) %>% 
       ggplot() +
       theme_bw(base_size = 9) +
       ggspatial::annotation_map_tile(type = 'cartolight', zoom = 8) +
       geom_sf(aes(color = pred_fct), linewidth = 0.3) +
-      scale_color_manual(values = c(Episodic = p7_color_episodic,
-                                    `Not episodic` = p7_color_not_episodic,
+      scale_color_manual(values = c(high = p7_color_high,
+                                    low = p7_color_low,
+                                    none = p7_color_not_episodic,
                                     `Not classified` = 'grey50'),
-                         name = 'Predicted\nclass') +
+                         name = 'Predicted\nclass') 
       ggtitle(sprintf('Predicted class for %s', unique(p7_comid_xwalk_grp$region)))
     ggsave(file_out, region_predict_map, width = 6, height = 4, units = 'in', dpi = 500)
     return(file_out)
@@ -265,18 +284,21 @@ p7_targets <- list(
     file_out <- sprintf('7_Disseminate/out/Fig4_predict_map_%s.png', 
                         startComid)
 
-    p.maumee <-p7_huc_flowlines_distinct %>%
-        right_join(upstreamids, by = 'nhd_comid') %>% 
-        left_join(p6_predict_episodic, by = 'nhd_comid') %>% 
-        filter(pred_fct %in% c('Not episodic', 'Episodic')) %>% 
-        ggplot() +
-        theme_bw(base_size = 7) +
-        ggspatial::annotation_map_tile(type = 'cartolight', zoom = 10) +
-        geom_sf(aes(color = pred_fct), linewidth = 0.3) +
-        scale_color_manual(values = c(Episodic = p7_color_episodic,
-                                      `Not episodic` = p7_color_not_episodic,
-                                      `Not classified` = 'grey50'),
-                           name = 'Predicted\nclass') 
+    p.maumee <- p7_huc_flowlines_distinct %>%
+      right_join(upstreamids, by = 'nhd_comid') %>% 
+      left_join(p6_predict_episodic, by = 'nhd_comid') %>% 
+      filter(pred !=  'Not classified') %>% 
+      mutate(pred_fct = factor(pred, levels = c('high', 'low', 'none'))) %>% 
+      ggplot() +
+      theme_bw(base_size = 7) +
+      ggspatial::annotation_map_tile(type = 'cartolight', zoom = 11) +
+      geom_sf(aes(color = pred_fct), linewidth = 0.3) +
+      scale_x_continuous(n.breaks = 2) +
+      scale_color_manual(values = c(high = p7_color_high,
+                                    low = p7_color_low,
+                                    none = p7_color_not_episodic,
+                                    `Not classified` = 'grey50'),
+                         name = 'Predicted\nclass') 
         
     ggsave(file_out, p.maumee, 
            height = 2.5, units = 'in', dpi = 500)
@@ -299,17 +321,19 @@ p7_targets <- list(
     file_out <- sprintf('7_Disseminate/out/Fig4_predict_map_%s.png', 
                         startComid)
     
-    p.cuyahoga <-p7_huc_flowlines_distinct %>%
+    p.cuyahoga <- p7_huc_flowlines_distinct %>%
       right_join(upstreamids, by = 'nhd_comid') %>% 
       left_join(p6_predict_episodic, by = 'nhd_comid') %>% 
-      filter(pred_fct %in% c('Not episodic', 'Episodic')) %>% 
+      filter(pred !=  'Not classified') %>% 
+      mutate(pred_fct = factor(pred, levels = c('high', 'low', 'none'))) %>% 
       ggplot() +
       theme_bw(base_size = 7) +
       ggspatial::annotation_map_tile(type = 'cartolight', zoom = 11) +
       geom_sf(aes(color = pred_fct), linewidth = 0.3) +
-      scale_x_continuous(n.breaks = 4) +
-      scale_color_manual(values = c(Episodic = p7_color_episodic,
-                                    `Not episodic` = p7_color_not_episodic,
+      scale_x_continuous(n.breaks = 2) +
+      scale_color_manual(values = c(high = p7_color_high,
+                                    low = p7_color_low,
+                                    none = p7_color_not_episodic,
                                     `Not classified` = 'grey50'),
                          name = 'Predicted\nclass') 
     
@@ -336,16 +360,18 @@ p7_targets <- list(
     p.yahara <- p7_huc_flowlines_distinct %>%
       right_join(upstreamids, by = 'nhd_comid') %>% 
       left_join(p6_predict_episodic, by = 'nhd_comid') %>% 
-      filter(pred_fct %in% c('Not episodic', 'Episodic')) %>% 
+      filter(pred !=  'Not classified') %>% 
+      mutate(pred_fct = factor(pred, levels = c('high', 'low', 'none'))) %>% 
       ggplot() +
       theme_bw(base_size = 7) +
       ggspatial::annotation_map_tile(type = 'cartolight', zoom = 11) +
       geom_sf(aes(color = pred_fct), linewidth = 0.3) +
-      scale_x_continuous(n.breaks = 3) +
-      scale_color_manual(values = c(Episodic = p7_color_episodic,
-                                    `Not episodic` = p7_color_not_episodic,
+      scale_x_continuous(n.breaks = 2) +
+      scale_color_manual(values = c(high = p7_color_high,
+                                    low = p7_color_low,
+                                    none = p7_color_not_episodic,
                                     `Not classified` = 'grey50'),
-                         name = 'Predicted\nclass')
+                         name = 'Predicted\nclass') 
       
     ggsave(file_out, p.yahara, 
           height = 2.5, units = 'in', dpi = 500)
@@ -370,14 +396,16 @@ p7_targets <- list(
     p.housatonic <- p7_huc_flowlines_distinct %>%
       right_join(upstreamids, by = 'nhd_comid') %>% 
       left_join(p6_predict_episodic, by = 'nhd_comid') %>% 
-      filter(pred_fct %in% c('Not episodic', 'Episodic')) %>% 
+      filter(pred !=  'Not classified') %>% 
+      mutate(pred_fct = factor(pred, levels = c('high', 'low', 'none'))) %>% 
       ggplot() +
       theme_bw(base_size = 7) +
       ggspatial::annotation_map_tile(type = 'cartolight', zoom = 11) +
       geom_sf(aes(color = pred_fct), linewidth = 0.3) +
       scale_x_continuous(n.breaks = 2) +
-      scale_color_manual(values = c(Episodic = p7_color_episodic,
-                                    `Not episodic` = p7_color_not_episodic,
+      scale_color_manual(values = c(high = p7_color_high,
+                                    low = p7_color_low,
+                                    none = p7_color_not_episodic,
                                     `Not classified` = 'grey50'),
                          name = 'Predicted\nclass') 
     
@@ -392,8 +420,9 @@ p7_targets <- list(
   ###### SpC time series for ALL sites ######
   
   tar_target(p7_episodic_plotlist, create_episodic_plotlist(p3_ts_sc_qualified,
-                                                            p4_episodic_sites, 
-                                                            p7_color_episodic, 
+                                                            p4_ts_sc_peak_summary, 
+                                                            p7_color_high,
+                                                            p7_color_low, 
                                                             p7_color_not_episodic)),
   tar_target(p7_episodic_png, 
              ggsave(filename = sprintf('7_Disseminate/out/SI_episodic_grp%s.png', names(p7_episodic_plotlist)), 

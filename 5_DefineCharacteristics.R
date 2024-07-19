@@ -17,7 +17,7 @@ p5_targets <- list(
   
   ###### Prep data for RF ######
   
-  tar_target(p5_site_attr, prep_attr_randomforest(p3_static_attributes, sites_episodic = p4_episodic_sites)),
+  tar_target(p5_site_attr, prep_attr_randomforest(p3_static_attributes, sites_episodic = p4_ts_sc_peak_summary)),
   tar_target(p5_site_attr_rf, dplyr::select(p5_site_attr, -site_no) %>% 
                na.omit()),
   
@@ -56,7 +56,7 @@ p5_targets <- list(
   tar_target(p5_rf_attr_importance_viz, visualize_attr_importance1(rf_model_importance = p5_rf_attr_importance)),
   tar_target(p5_rf_attr_partdep, calculate_partial_dependence(p5_rf_model_optimized, 
                                                                p5_site_attr_rf_optimal,
-                                                               focus_class = "Episodic")),
+                                                               focus_class = "high")),
   tar_target(p5_rf_attr_partdep_viz, visualize_partial_dependence(p5_rf_attr_partdep, p5_site_attr_rf_optimal)),
   
   ###### Visualize site category attribute distributions ######

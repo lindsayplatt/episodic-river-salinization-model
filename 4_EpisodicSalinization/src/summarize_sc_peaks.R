@@ -21,13 +21,13 @@ summarize_salt_peaks <- function(ts_peak_data, winter_months = c(12,1,2,3),
                                  num_peaks_per_year, spec_cond_buffer) {
   
   
-  ts_peak_data %>% 
-    
+  peaks = ts_peak_data %>% 
     # Identify which dates are in winter
     mutate(is_winter = month(dateTime) %in% winter_months) %>% 
+    mutate(year = if_else(month(dateTime) >= 10, year(dateTime)+1, year(dateTime))) %>% 
     
     # First keep only years where there is sufficient data in winter (>60 days)
-    group_by(site_no, year = year(dateTime)) %>% 
+    group_by(site_no, year) %>% 
     mutate(winterSum = sum(is_winter)) %>% 
     # This removes 488 site-years (out of 3,302 so ~15% dropped)
     filter(winterSum > 60) %>%
@@ -46,19 +46,45 @@ summarize_salt_peaks <- function(ts_peak_data, winter_months = c(12,1,2,3),
     slice(1:num_peaks_per_year) %>%
     ungroup() %>% 
     
-    # Now calculate median SpC per site per season using only those top peaks
-    group_by(site_no, season) %>% 
+    # Group by year 
+    group_by(site_no, year, season) %>% 
     summarize(meanSpC = mean(SpecCond, na.rm=TRUE), .groups='keep') %>% 
-    ungroup() %>% 
+    
+    # # Now calculate median SpC per site per season using only those top peaks
+    # group_by(site_no, season) %>% 
+    # summarize(meanSpC = mean(SpecCond, na.rm=TRUE), .groups='keep') %>% 
+    # ungroup() %>% 
     
     # Pivot so that each site has a row and each season has a column 
     # containing the median SpC of the top `num_peaks_per_year`
-    pivot_wider(id_cols = c('site_no'), 
+    pivot_wider(id_cols = c('site_no', 'year'), 
                 names_from = 'season', 
                 values_from = meanSpC) %>% 
     
+    mutate(is_episodic = winter >= (not_winter + spec_cond_buffer)) %>% 
+    filter(!is.na(is_episodic))
+    
     # Now determine whether a site is episodic by comparing winter vs non-winter
     # and applying a buffer so that winter is "much higher"
-    mutate(is_episodic = winter >= (not_winter + spec_cond_buffer))
-  
+    # mutate(episodic = winter >= (not_winter + spec_cond_buffer))
+    
+    defineEpisodic <- function(df){
+      nYears = nrow(df)
+      episodicYears = sum(df$is_episodic)
+      
+     is_episodic = case_when((episodicYears/nYears) >= 0.60 ~ 'high',
+                                         (episodicYears/nYears) >= 0.30 ~ 'low',
+                                         (episodicYears/nYears) < 0.30 ~ 'none')
+      return(is_episodic)
+    }
+    
+    threeClass = peaks %>% group_by(site_no) %>% 
+      group_map(~ defineEpisodic(.x)) %>% 
+      unlist()
+    
+    peaks.out = peaks %>% group_by(site_no) %>% 
+      summarise(winter = mean(winter, na.rm = T), not_winter = mean(not_winter, na.rm = T)) %>% 
+      mutate(is_episodic = threeClass)
+    
+    return(peaks.out)
 }

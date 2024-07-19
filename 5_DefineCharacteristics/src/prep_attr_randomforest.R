@@ -16,10 +16,9 @@ prep_attr_randomforest <- function(site_attr_data, sites_episodic) {
   
   # Prep attributes for running an RF based on episodic sites or not
   site_category_data <- site_attr_data %>% 
-    mutate(site_category = case_when(
-      site_no %in% sites_episodic ~ 'Episodic',
-      !site_no %in% sites_episodic ~ 'Not episodic'
-    )) 
+    left_join(sites_episodic) %>% 
+    rename(site_category = is_episodic)
+    
 
   # Now prepare the rest of the data by removing some attributes that we can't use right now
   site_category_data %>% 

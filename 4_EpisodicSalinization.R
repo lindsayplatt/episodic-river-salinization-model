@@ -26,7 +26,7 @@ p4_targets <- list(
   tar_target(p4_ts_sc_peak_summary, 
              summarize_salt_peaks(p4_ts_sc_peaks, 
                                   num_peaks_per_year = 3, 
-                                  spec_cond_buffer = 200)),
-  tar_target(p4_episodic_sites, filter(p4_ts_sc_peak_summary, is_episodic)$site_no)
+                                  spec_cond_buffer = 200))
+  # tar_target(p4_episodic_sites, filter(p4_ts_sc_peak_summary, is_episodic)$site_no)
   
 )

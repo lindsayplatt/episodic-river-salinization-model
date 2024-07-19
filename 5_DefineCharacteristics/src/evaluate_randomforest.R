@@ -17,7 +17,7 @@ calculate_attr_importance <- function(rf_model) {
   rf_importance <- rf_model$importance %>% 
     as_tibble(rownames = 'attribute') %>% 
     dplyr::select(-MeanDecreaseGini, -MeanDecreaseAccuracy) %>% 
-    pivot_longer(matches('Episodic|Not episodic'), 
+    pivot_longer(matches('high|low|none'), 
                  names_to = 'site_category',
                  values_to = 'importance') 
   
@@ -25,7 +25,7 @@ calculate_attr_importance <- function(rf_model) {
   rf_importance_sd <- rf_model$importanceSD %>% 
     as_tibble(rownames = 'attribute') %>% 
     dplyr::select(-MeanDecreaseAccuracy) %>% 
-    pivot_longer(matches('Episodic|Not episodic'), 
+    pivot_longer(matches('high|low|none'), 
                  names_to = 'site_category',
                  values_to = 'importance_sd')
   
