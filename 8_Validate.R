@@ -131,7 +131,7 @@ p8_targets <- list(
              summarize_salt_peaks(p8_ts_sc_peaks, 
                                   num_peaks_per_year = 3, 
                                   spec_cond_buffer = 200)),
-  tar_target(p8_episodic_sites, filter(p8_ts_sc_peak_summary, is_episodic)$site_no),
+  # tar_target(p8_episodic_sites, filter(p8_ts_sc_peak_summary, is_episodic)$site_no),
   
   
   ################################## 6) Predict Class ##################################
@@ -143,13 +143,15 @@ p8_targets <- list(
   tar_target(p8_predfct,
              p6_predict_episodic %>% inner_join(p8_nwis_site_nhd_comid_ALL_xwalk)),
   
-  tar_target(p8_predict_episodic_sites,
-             p8_predfct %>% filter(pred == 'Episodic') %>% pull(site_no)),
+  tar_target(p8_pred_confusion, 
+             p8_ts_sc_peak_summary %>% left_join(p8_predfct) %>%
+             filter(is_episodic != pred)),
   
   ################################## 7) Disseminate ##################################
   tar_target(p8_episodic_plotlist, create_episodic_plotlist(p8_ts_sc_qualified,
-                                                            p8_predict_episodic_sites,
-                                                            p7_color_episodic,
+                                                            p8_ts_sc_peak_summary,
+                                                            p7_color_high,
+                                                            p7_color_low, 
                                                             p7_color_not_episodic)),
   tar_target(p8_episodic_png,
              ggsave(filename = sprintf('8_Validate/out/SI_validate_grp%s.png', names(p8_episodic_plotlist)),
