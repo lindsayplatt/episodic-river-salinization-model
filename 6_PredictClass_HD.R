@@ -114,8 +114,8 @@ p6_targets <- list(
     
     outfile = sprintf('6_PredictClass/out/allupstreamcomids_huc_%s.feather',
                       paste(p6_flowlines_huc_use$huc2[1], unique(use_state_comids$tar_group), sep = '_'))
-    write_feather(upstream_tbl, outfile)
-
+    # write_feather(upstream_tbl, outfile) #Initially exported data to make sure it was working. It is. 
+    
     return(upstream_tbl)
 
   }, pattern = map(p6_state_comids), iteration = 'list'),
@@ -152,12 +152,9 @@ p6_targets <- list(
     
     outfile = sprintf('6_PredictClass/out/allupstreamcomids_huc_%s.feather',
                       paste(p6_flowlines_huc_use$huc2[1], p6_state_comids$tar_group[1], sep = '_'))
-    write_feather(upstream_tbl, outfile)
-    
     return(upstream_tbl)
     
   }, pattern = map(p6_state_comids), iteration = 'list'),
-  
   tar_target(p6_huc10_upstream_comids, {
     p6_flowlines_huc_use = p6_flowlines_huc_tbl[[4]]
     p6_index_ids = make_index_ids(p6_flowlines_huc_use)
@@ -191,8 +188,6 @@ p6_targets <- list(
     
     outfile = sprintf('6_PredictClass/out/allupstreamcomids_huc_%s.feather',
                       paste(p6_flowlines_huc_use$huc2[1], p6_state_comids$tar_group[1], sep = '_'))
-    write_feather(upstream_tbl, outfile)
-    
     return(upstream_tbl)
     
   }, pattern = map(p6_state_comids), iteration = 'list'),
@@ -229,8 +224,6 @@ p6_targets <- list(
     
     outfile = sprintf('6_PredictClass/out/allupstreamcomids_huc_%s.feather',
                       paste(p6_flowlines_huc_use$huc2[1], p6_state_comids$tar_group[1], sep = '_'))
-    write_feather(upstream_tbl, outfile)
-    
     return(upstream_tbl)
     
   }, pattern = map(p6_state_comids), iteration = 'list'),
@@ -267,8 +260,6 @@ p6_targets <- list(
     
     outfile = sprintf('6_PredictClass/out/allupstreamcomids_huc_%s.feather',
                       paste(p6_flowlines_huc_use$huc2[1], p6_state_comids$tar_group[1], sep = '_'))
-    write_feather(upstream_tbl, outfile)
-    
     return(upstream_tbl)
     
   }, pattern = map(p6_state_comids), iteration = 'list'),
@@ -305,8 +296,6 @@ p6_targets <- list(
     
     outfile = sprintf('6_PredictClass/out/allupstreamcomids_huc_%s.feather',
                       paste(p6_flowlines_huc_use$huc2[1], p6_state_comids$tar_group[1], sep = '_'))
-    write_feather(upstream_tbl, outfile)
-    
     return(upstream_tbl)
     
   }, pattern = map(p6_state_comids), iteration = 'list'),
@@ -343,8 +332,6 @@ p6_targets <- list(
     
     outfile = sprintf('6_PredictClass/out/allupstreamcomids_huc_%s.feather',
                       paste(p6_flowlines_huc_use$huc2[1], p6_state_comids$tar_group[1], sep = '_'))
-    write_feather(upstream_tbl, outfile)
-    
     return(upstream_tbl)
     
   }, pattern = map(p6_state_comids), iteration = 'list'),
@@ -381,8 +368,6 @@ p6_targets <- list(
     
     outfile = sprintf('6_PredictClass/out/allupstreamcomids_huc_%s.feather',
                       paste(p6_flowlines_huc_use$huc2[1], p6_state_comids$tar_group[1], sep = '_'))
-    write_feather(upstream_tbl, outfile)
-    
     return(upstream_tbl)
     
   }, pattern = map(p6_state_comids), iteration = 'list'),
@@ -419,8 +404,6 @@ p6_targets <- list(
     
     outfile = sprintf('6_PredictClass/out/allupstreamcomids_huc_%s.feather',
                       paste(p6_flowlines_huc_use$huc2[1], p6_state_comids$tar_group[1], sep = '_'))
-    write_feather(upstream_tbl, outfile)
-    
     return(upstream_tbl)
     
   }, pattern = map(p6_state_comids), iteration = 'list'),
@@ -457,8 +440,6 @@ p6_targets <- list(
     
     outfile = sprintf('6_PredictClass/out/allupstreamcomids_huc_%s.feather',
                       paste(p6_flowlines_huc_use$huc2[1], p6_state_comids$tar_group[1], sep = '_'))
-    write_feather(upstream_tbl, outfile)
-    
     return(upstream_tbl)
     
   }, pattern = map(p6_state_comids), iteration = 'list'),
@@ -495,8 +476,6 @@ p6_targets <- list(
     
     outfile = sprintf('6_PredictClass/out/allupstreamcomids_huc_%s.feather',
                       paste(p6_flowlines_huc_use$huc2[1], p6_state_comids$tar_group[1], sep = '_'))
-    write_feather(upstream_tbl, outfile)
-    
     return(upstream_tbl)
     
   }, pattern = map(p6_state_comids), iteration = 'list'),
