@@ -88,8 +88,8 @@ create_episodic_criteria_fig <- function(out_file, sites_sf, all_site_categories
           axis.title.x = element_text(vjust = -2),
           axis.title.y = element_text(vjust = 2),
           plot.margin = unit(c(1.5,0.5,1,1), unit='line')) +
-    xlab('Non-Winter Median Peak SpC') +
-    ylab('Winter Median Peak SpC')
+    xlab('Non-Winter Mean Peak SpC') +
+    ylab('Winter Mean Peak SpC')
   
   # 1 column width
   png(out_file, width = 8.7, height = 15, units='cm', res=500)
