@@ -30,6 +30,7 @@ tar_option_set(
     'sbtools',
     'scico',
     'sf',
+    'spData',
     'tidytext',
     'tidyverse',
     'units',
