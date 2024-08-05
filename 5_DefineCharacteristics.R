@@ -11,7 +11,7 @@ p5_targets <- list(
   
   # Set number of attributes to keep during feature selection step 
   tar_target(p5_attr_count, ncol(p3_static_attributes)-1),
-  tar_target(p5_attr_cutoff, p5_attr_count/2), 
+  tar_target(p5_attr_cutoff, 8), 
   
   ##### Run random forest for just episodic #####
   
