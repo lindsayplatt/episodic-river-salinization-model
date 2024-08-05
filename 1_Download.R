@@ -65,8 +65,12 @@ p1_targets <- list(
              pattern = map(p1_nwis_sc_sites_qualified)),
   
   # Using the sites that also have qualified Q, filter the SC site list before querying
-  tar_target(p1_nwis_sc_sites_query, p1_nwis_sc_sites_qualified %>% 
-               filter(site_no %in% p1_nwis_q_sites_query$site_no),
+  tar_target(p1_nwis_sc_sites_query, p1_nwis_sc_sites_qualified, #%>% 
+             # Someone can uncomment this in the future but we are not
+             # currently using NWIS Q to filter the sites used in the 
+             # remainder of the analysis, though it would be easy to 
+             # uncomment this and do that.
+             #  filter(site_no %in% p1_nwis_q_sites_query$site_no),
              pattern = map(p1_nwis_sc_sites_qualified)),
   
   ###### NWIS DATA 5: Prepare to download all the SC data ###### 
