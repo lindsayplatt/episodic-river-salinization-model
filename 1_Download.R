@@ -302,7 +302,7 @@ p1_targets <- list(
   # Load the national catchments layer as an sf object and rename `FEATUREID` to `nhd_comid`
   tar_target(p1_nhdplus_catchments_sf, 
              st_read(p1_nhdplus_gdb, layer = 'CatchmentSP') %>% 
-               rename(nhd_comid = FEATUREID, areasqkm = AreaSqKM))
+               rename(nhd_comid = FEATUREID, areasqkm = AreaSqKM)),
   
   ##### Download National Water Model streamflow #####
   
@@ -312,9 +312,10 @@ p1_targets <- list(
   # And calculates the median per COMID before returning data
   # This took ~4 hrs to run 4 groups of ~100 COMIDs
   
-  # tarchetypes::tar_group_size(p1_nwm_comids_grp, 
-  #                              size = 100, # Set groups of 10 to map over NWM download
-  #                              tibble(nhd_comid = p1_nhdplus_comids))
-  # tar_target(p1_nwm_streamflow, download_NWMv2_streamflow(p1_nwm_comids_grp$nhd_comid),
-  #            pattern = map(p1_nwm_comids_grp))
+  tarchetypes::tar_group_size(p1_nwm_comids_grp,
+                               size = 100, # Set groups of 10 to map over NWM download
+                               tibble(nhd_comid = p1_nhdplus_comids)),
+  tar_target(p1_nwm_streamflow, download_NWMv2_streamflow(p1_nwm_comids_grp$nhd_comid),
+             pattern = map(p1_nwm_comids_grp))
+  
 )

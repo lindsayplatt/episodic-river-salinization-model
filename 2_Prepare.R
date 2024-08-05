@@ -64,7 +64,7 @@ p2_targets <- list(
   
   # Instead of using NWIS streamflow, we will use NWM flow so that
   # we can use our model later to predict to streams without gages
-  # tar_target(p2_attr_flow_nwm, prep_nwm_flow(p1_nwm_streamflow, p1_nwis_site_nhd_comid_ALL_xwalk)),
+  tar_target(p2_attr_flow_nwm, prep_nwm_flow(p1_nwm_streamflow, p1_nwis_site_nhd_comid_ALL_xwalk)),
   
   ###### ATTR DATA 2: Extract road salt application per site ######
   
@@ -135,7 +135,7 @@ p2_targets <- list(
   ###### ATTR DATA 5: Combine all static attributes into one table ######
   
   tar_target(p2_attr_all, combine_static_attributes(joinby = 'site_no',
-                                                    # p2_attr_flow_nwm,
+                                                    p2_attr_flow_nwm,
                                                     p2_streamorder,
                                                     p2_attr_basinArea %>% select(site_no, attr_areaCumulativeSqKm),
                                                     p2_attr_roadSalt_forModel,
