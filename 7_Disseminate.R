@@ -8,6 +8,7 @@ source('7_Disseminate/src/attribute_boxplot_figs.R')
 source('7_Disseminate/src/category_map_figs.R')
 source('7_Disseminate/src/episodic_detection_figs.R')
 source('7_Disseminate/src/RF_compilation_figs.R')
+source('7_Disseminate/src/getWatershedArea.R')
 
 p7_targets <- list(
   
@@ -193,7 +194,27 @@ p7_targets <- list(
       mutate(predLengthPer = 100*predLength/orderLength) %>% 
       arrange(pred_fct, StreamOrde, desc(predLengthPer))
     
+    # Output values for manuscript
     sink("7_Disseminate/out/outputStats.txt")
+      cat("Total Episodic sites/Total sites\n")
+      print(length(p4_episodic_sites))
+      print(nrow(p3_static_attributes))
+      cat("\n")
+      cat("Model Accurary")
+      print(p5_rf_accuracy)
+      cat("\n")
+      cat("Model OOB")
+      print(p5_rf_oob)
+      cat("\n")
+      cat("Model Confusion matrix")
+      print(p5_rf_model_optimized$confusion)
+      
+      cat("Number of stream segments predicted:")
+      print(nrow(p6_predict_episodic))
+      cat("\n")
+      
+      cat("\n")
+      cat("PREDICTION OUTPUT \n")
       cat("For entire region \n")
       print(regionTot)
       cat("\n")
@@ -203,10 +224,29 @@ p7_targets <- list(
       cat("By stream order \n")
       print(orderTot, n = 80)
       cat("\n")
+      
+      cat("Watershed Areas\n")
+      cat("Cuyahoga")
+      print(getWatershedArea(lat = 41.49730, long = -81.70296, 
+                             useUpstream = p6_huc4_upstream_comids_df, 
+                             useWatersheds = p6_huc4_catchment_sf))
+      cat("Maummee")
+      print(getWatershedArea(lat = 41.68858, long = -83.47631, 
+                             useUpstream = p6_huc4_upstream_comids_df, 
+                             useWatersheds = p6_huc4_catchment_sf))
+      cat("Yahara")
+      print(getWatershedArea(lat = 42.809, long = -89.1245,
+                             useUpstream = p6_huc7_upstream_comids_df, 
+                             useWatersheds = p6_huc7_catchment_sf))
+      cat("Housatonic")
+      print(getWatershedArea(lat = 41.203129, long = -73.10991, 
+                             useUpstream = p6_huc1_upstream_comids_df, 
+                             useWatersheds = p6_huc1_catchment_sf))
+      cat("\n")
     sink()
   }),
   
-  # Full map
+  ############################ Full Map ############################
   tar_target(p7_predict_episodic_mapAll_png, {
     file_out <- '7_Disseminate/out/Fig4_predict_map.png'
    
