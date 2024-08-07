@@ -155,6 +155,8 @@ p7_targets <- list(
   
   ############################ Print statistics ##########################
   tar_target(p7_stats, {
+    file_out <- '7_Disseminate/out/outputStats.txt'
+    
     p7_comid_xwalk = p6_state_comids %>% 
       select(-tar_group) %>% 
       distinct() %>% 
@@ -195,7 +197,7 @@ p7_targets <- list(
       arrange(pred_fct, StreamOrde, desc(predLengthPer))
     
     # Output values for manuscript
-    sink("7_Disseminate/out/outputStats.txt")
+    sink(file_out)
       cat("Total Episodic sites/Total sites\n")
       print(length(p4_episodic_sites))
       print(nrow(p3_static_attributes))
@@ -244,7 +246,8 @@ p7_targets <- list(
                              useWatersheds = p6_huc1_catchment_sf))
       cat("\n")
     sink()
-  }),
+    return(file_out)
+  }, format='file'),
   
   ############################ Full Map ############################
   tar_target(p7_predict_episodic_mapAll_png, {
