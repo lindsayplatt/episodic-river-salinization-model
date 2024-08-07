@@ -427,8 +427,6 @@ p7_targets <- list(
     return(p.housatonic)
   }),
   
-  
-  
   ############################ Supplemental figures ############################
   
   ###### SpC time series for ALL sites ######
