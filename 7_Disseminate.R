@@ -191,18 +191,67 @@ p7_targets <- list(
       group_by(StreamOrde) %>% 
       mutate(orderLength = sum(LENGTHKM, na.rm = T)) %>% 
       group_by(StreamOrde, orderLength, pred_fct) %>% 
-      summarise(predLength = sum(LENGTHKM, na.rm = T)) %>% 
+      summarise(n = n(), predLength = sum(LENGTHKM, na.rm = T)) %>% 
       ungroup() %>% 
       mutate(predLengthPer = 100*predLength/orderLength) %>% 
       arrange(pred_fct, StreamOrde, desc(predLengthPer))
     
-    # Output values for manuscript
+    mediandays = p4_ts_sc_norm %>% group_by(site_no) %>% 
+      summarise(n = n()) %>% 
+      ungroup() %>% 
+      summarise(mediandays = median(n)) %>% 
+      pull(mediandays)
+    
+    minmaxSpc = p4_ts_sc_norm %>% group_by(site_no) %>% 
+      summarise(medianSpc = median(SpecCond)) %>% 
+      ungroup() %>% 
+      summarise(min(medianSpc), max(medianSpc), median(medianSpc))
+    
+    # p4_ts_sc_norm %>% group_by(site_no) %>% 
+    #   summarise(medianSpc = median(SpecCond)) %>% 
+    #   left_join(p3_static_attributes %>% select(site_no, attr_streamorder)) %>% 
+    #   ggplot() +
+    #   geom_point(aes(x = attr_streamorder, y = medianSpc))
+    
+    sites10 = nrow(p4_ts_sc_norm %>% group_by(site_no) %>% 
+      summarise(n = n()) %>% 
+      filter(n >= 365*10))
+      
+    episodicN = p3_static_attributes %>% select(site_no, attr_streamorder) %>% 
+      filter(site_no %in% p4_episodic_sites) %>% 
+      group_by(attr_streamorder) %>% 
+      tally()
+    
+    #### Output values for manuscript
     sink(file_out)
+      cat("DATASET STATS \n")
       cat("Total Episodic sites/Total sites\n")
       print(length(p4_episodic_sites))
       print(nrow(p3_static_attributes))
       cat("\n")
-      cat("Model Accurary")
+      cat("Unique site days:")
+      print(nrow(p4_ts_sc_norm))
+      cat("\n")
+      cat("Median number of days:")
+      print(mediandays)
+      cat("\n")
+      cat("Sites over 10 years (n, %)\n")
+      print(sites10)
+      print(sites10/nrow(p3_static_attributes))
+      cat("\n")
+      cat("Number of sites by streamorder\n")
+      print(p3_static_attributes %>% group_by(attr_streamorder) %>% tally())
+      cat("\n")
+      cat("Minimum and Maximum SpC\n")
+      print(minmaxSpc)
+      cat("\n")
+      cat("Number of episodic sites by streamorder\n")
+      print(episodicN)
+      cat("\n")
+      cat("\n")
+      
+      cat("MODEL STATS \n")
+      cat("Model Accuracy:")
       print(p5_rf_accuracy)
       cat("\n")
       cat("Model OOB")
