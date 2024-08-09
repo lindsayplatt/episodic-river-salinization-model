@@ -135,6 +135,9 @@ p2_targets <- list(
   ###### ATTR DATA 5: Combine all static attributes into one table ######
   
   tar_target(p2_attr_all, combine_static_attributes(joinby = 'site_no',
+                                                    # Start with a tibble of all the sites we want 
+                                                    # attributes for and join other tables into that.
+                                                    tibble(site_no = p3_ts_sc_temporal_qualified_sites),
                                                     p2_attr_flow_nwm,
                                                     p2_streamorder,
                                                     p2_attr_basinArea %>% select(site_no, attr_areaCumulativeSqKm),
