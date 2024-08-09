@@ -63,7 +63,7 @@ p7_targets <- list(
     create_episodic_plotlist(ts_sc, sites_episodic = example_episodic_sites, 
                                episodic_col = p7_color_episodic, 
                                not_episodic_col = p7_color_not_episodic, 
-                               nrow=2, addNWISName = TRUE) 
+                               usenrow=2, addNWISName = TRUE) 
   }),
   tar_target(p7_episodic_examples_png, {
     out_file <- '7_Disseminate/out/Fig2_episodic_ts.png'
@@ -489,8 +489,13 @@ p7_targets <- list(
                                                             p7_color_not_episodic)),
   tar_target(p7_episodic_png, 
              ggsave(filename = sprintf('7_Disseminate/out/SI_episodic_grp%s.png', names(p7_episodic_plotlist)), 
-                    plot = p7_episodic_plotlist[[1]], height = 8, width = 6.5, dpi = 500), 
+                    plot = p7_episodic_plotlist[[1]] + 
+                      theme(axis.text.x = element_text(size = 6, angle = 40, hjust=1),
+                            axis.text.y = element_text(size = 6)), 
+                    height = 8, width = 6.5, dpi = 500), 
              format = 'file', pattern = map(p7_episodic_plotlist)),
+
+  
   
   ##### Extra figures (not in manuscript) #####
   
