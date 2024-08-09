@@ -22,7 +22,7 @@
 #' 
 create_attribute_boxplots <- function(out_file, site_attr_data, attribute_order, attribute_name_xwalk, 
                                       box_colors, legend_position = 'bottom',
-                                      attribute_text_size = 12) {
+                                      attribute_text_size = 9) {
   
   display_name_in_order <- tibble(attribute = attribute_order) %>% 
     left_join(attribute_name_xwalk, by = 'attribute') %>% 
@@ -43,16 +43,27 @@ create_attribute_boxplots <- function(out_file, site_attr_data, attribute_order,
     pivot_longer(cols = -site_category_fact, 
                  names_to = 'attribute', 
                  values_to = 'attr_val') %>% 
-    mutate(attr_fact = attribute_as_factor(attribute, attribute_order, display_name_in_order))
+    mutate(attr_fact = attribute_as_factor(attribute, attribute_order, display_name_in_order)) 
+  # Stat test
+  stat.test <- data_to_plot %>% 
+    mutate(site = if_else(site_category_fact == 'Not episodic', 1, 2)) %>%
+    filter(!attribute %in% c('medianFlow')) %>% 
+    group_by(attribute, attr_fact) %>% 
+    # do(w = wilcox.test(attr_val ~ site_category_fact, data=., paired=FALSE)) %>%
+    do(w = wilcox_test(attr_val ~ site_category_fact, data=., paired=FALSE,  p.adjust.method = 'bonferroni')) %>%
+    summarise(attribute, attr_fact, Wilcox = w$p) %>% 
+    mutate(sig = if_else(Wilcox < 0.05, '*',''))
   
   p_boxes <- ggplot(data_to_plot, aes(x = site_category_fact, y = attr_val)) +
-    geom_boxplot(aes(fill = site_category_fact)) + 
-    facet_wrap(vars(attr_fact), scales = 'free_y') +
-    theme_bw() +
+    geom_boxplot(aes(fill = site_category_fact), linewidth = 0.3, outlier.size = 0.5) + 
+    facet_wrap(vars(attr_fact), scales = 'free_y', ncol = 4) +
+    geom_text(data = stat.test, aes(x = -Inf, y = Inf, label = sig), hjust = 0, vjust = 1, 
+              size = 8, color = 'red4') +
+    theme_bw(base_size = 9) +
     scale_y_continuous(labels = scales::comma) +
     scale_fill_manual(values = box_colors) +
-    theme(axis.text = element_text(size=10),
-          strip.text = element_text(size = attribute_text_size, face = 'bold'),
+    theme(#axis.text = element_text(size = 9),
+          strip.text = element_text(size = 9, face = 'bold'),
           strip.background = element_rect(fill = 'white', color = 'transparent'),
           axis.title.x = element_blank(),
           axis.title.y = element_blank(), 

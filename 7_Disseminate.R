@@ -22,12 +22,12 @@ p7_targets <- list(
                   "subsurfaceContact", "gwRecharge", "pctOpenWater", "basinSlope", 
                   "pctForested", "pctWetland", "pctAgriculture", "pctDeveloped", 
                   "annualSnow", "winterAirTemp", "depthToWT", "transmissivity", 
-                  "areaCumulativeSqKm"),
+                  "areaCumulativeSqKm", "streamorder"),
     display_name = c("Median Flow (m3/s)", "Watershed Road Salt (kg/km2)", "Precip (mm/yr)", "Baseflow Index",
                      "Subsurface Contact (days)", "GW Recharge (mm/yr)", "Open Water (% area)", "Basin Slope (%)",
                      "Forested (% area)", "Wetland (% area)", "Agriculture (% area)", "Developed (% area)", 
                      "Snow (mm/yr)", "Winter Air Temp (°C)", "Depth to WT (m)", 
-                     "Transmissivity (m2/day)", "Watershed Area (km2)"))),
+                     "Transmissivity (m2/day)", "Watershed Area (km2)", "Stream Order"))),
   
   # Create a single dataset that shows only site episodic categorization
   tar_target(p7_site_categories, p5_site_attr %>% 
@@ -63,7 +63,7 @@ p7_targets <- list(
     create_episodic_plotlist(ts_sc, sites_episodic = example_episodic_sites, 
                                episodic_col = p7_color_episodic, 
                                not_episodic_col = p7_color_not_episodic, 
-                               nrow=2, addNWISName = TRUE) 
+                               usenrow=2, addNWISName = TRUE) 
   }),
   tar_target(p7_episodic_examples_png, {
     out_file <- '7_Disseminate/out/Fig2_episodic_ts.png'
@@ -107,6 +107,19 @@ p7_targets <- list(
                                        c(Episodic=p7_color_episodic, 
                                          `Not episodic` = p7_color_not_episodic)), 
              format='file'),
+  
+  # Boxplots of attribute values by classification
+  tar_target(p7_attr_episodic_boxplotsALL_png, 
+             create_attribute_boxplots('7_Disseminate/out/attributes_boxes_episodicALL.png',
+                                       p5_site_attr_rf,
+                                       calculate_attr_importance(p5_rf_model_hypertuned) %>% 
+                                         filter(site_category == 'Episodic') %>% 
+                                         arrange(desc(importance)) %>% pull(attribute),
+                                       p7_attr_name_xwalk, 
+                                       c(Episodic=p7_color_episodic, 
+                                         `Not episodic` = p7_color_not_episodic)), 
+             format='file'),
+  
   
   # Compilation plot of above three figures
   tar_target(p7_rf_results_episodic_png, compilationPlot(
@@ -191,18 +204,67 @@ p7_targets <- list(
       group_by(StreamOrde) %>% 
       mutate(orderLength = sum(LENGTHKM, na.rm = T)) %>% 
       group_by(StreamOrde, orderLength, pred_fct) %>% 
-      summarise(predLength = sum(LENGTHKM, na.rm = T)) %>% 
+      summarise(n = n(), predLength = sum(LENGTHKM, na.rm = T)) %>% 
       ungroup() %>% 
       mutate(predLengthPer = 100*predLength/orderLength) %>% 
       arrange(pred_fct, StreamOrde, desc(predLengthPer))
     
-    # Output values for manuscript
+    mediandays = p4_ts_sc_norm %>% group_by(site_no) %>% 
+      summarise(n = n()) %>% 
+      ungroup() %>% 
+      summarise(mediandays = median(n)) %>% 
+      pull(mediandays)
+    
+    minmaxSpc = p4_ts_sc_norm %>% group_by(site_no) %>% 
+      summarise(medianSpc = median(SpecCond)) %>% 
+      ungroup() %>% 
+      summarise(min(medianSpc), max(medianSpc), median(medianSpc))
+    
+    # p4_ts_sc_norm %>% group_by(site_no) %>% 
+    #   summarise(medianSpc = median(SpecCond)) %>% 
+    #   left_join(p3_static_attributes %>% select(site_no, attr_streamorder)) %>% 
+    #   ggplot() +
+    #   geom_point(aes(x = attr_streamorder, y = medianSpc))
+    
+    sites10 = nrow(p4_ts_sc_norm %>% group_by(site_no) %>% 
+      summarise(n = n()) %>% 
+      filter(n >= 365*10))
+      
+    episodicN = p3_static_attributes %>% select(site_no, attr_streamorder) %>% 
+      filter(site_no %in% p4_episodic_sites) %>% 
+      group_by(attr_streamorder) %>% 
+      tally()
+    
+    #### Output values for manuscript
     sink(file_out)
+      cat("DATASET STATS \n")
       cat("Total Episodic sites/Total sites\n")
       print(length(p4_episodic_sites))
       print(nrow(p3_static_attributes))
       cat("\n")
-      cat("Model Accurary")
+      cat("Unique site days:")
+      print(nrow(p4_ts_sc_norm))
+      cat("\n")
+      cat("Median number of days:")
+      print(mediandays)
+      cat("\n")
+      cat("Sites over 10 years (n, %)\n")
+      print(sites10)
+      print(sites10/nrow(p3_static_attributes))
+      cat("\n")
+      cat("Number of sites by streamorder\n")
+      print(p3_static_attributes %>% group_by(attr_streamorder) %>% tally())
+      cat("\n")
+      cat("Minimum and Maximum SpC\n")
+      print(minmaxSpc)
+      cat("\n")
+      cat("Number of episodic sites by streamorder\n")
+      print(episodicN)
+      cat("\n")
+      cat("\n")
+      
+      cat("MODEL STATS \n")
+      cat("Model Accuracy:")
       print(p5_rf_accuracy)
       cat("\n")
       cat("Model OOB")
@@ -519,8 +581,13 @@ p7_targets <- list(
                                                             p7_color_not_episodic)),
   tar_target(p7_episodic_png, 
              ggsave(filename = sprintf('7_Disseminate/out/SI_episodic_grp%s.png', names(p7_episodic_plotlist)), 
-                    plot = p7_episodic_plotlist[[1]], height = 8, width = 6.5, dpi = 500), 
+                    plot = p7_episodic_plotlist[[1]] + 
+                      theme(axis.text.x = element_text(size = 6, angle = 40, hjust=1),
+                            axis.text.y = element_text(size = 6)), 
+                    height = 8, width = 6.5, dpi = 500), 
              format = 'file', pattern = map(p7_episodic_plotlist)),
+
+  
   
   ##### Extra figures (not in manuscript) #####
   
@@ -552,21 +619,21 @@ p7_targets <- list(
   
   ###### Boxplots of attributes for all sites combined ######
   
-  tar_target(p7_attr_all_boxplots_png, 
-             create_attribute_boxplots('7_Disseminate/out/attributes_boxes_all.png',
-                                       mutate(p5_site_attr_rf, site_category_fact = 'ALL'),
-                                       # Same order as the table
-                                       c('medianFlow', 'basinSlope', 'pctAgriculture',
-                                         'pctDeveloped', 'pctForested', 'pctOpenWater',
-                                         'pctWetland', 'annualPrecip', 'annualSnow',
-                                         'winterAirTemp', 'baseFlowInd', 'gwRecharge',
-                                         'subsurfaceContact', 'depthToWT', 
-                                         'transmissivity', 'roadSaltCumulativePerSqKm'),
-                                       p7_attr_name_xwalk, 
-                                       c(ALL='#868b8e'),
-                                       legend_position = "none",
-                                       attribute_text_size = 9), 
-             format='file'),
+  # tar_target(p7_attr_all_boxplots_png, 
+  #            create_attribute_boxplots('7_Disseminate/out/attributes_boxes_all.png',
+  #                                      mutate(p5_site_attr_rf, site_category_fact = 'ALL'),
+  #                                      # Same order as the table
+  #                                      c('medianFlow', 'basinSlope', 'pctAgriculture',
+  #                                        'pctDeveloped', 'pctForested', 'pctOpenWater',
+  #                                        'pctWetland', 'annualPrecip', 'annualSnow',
+  #                                        'winterAirTemp', 'baseFlowInd', 'gwRecharge',
+  #                                        'subsurfaceContact', 'depthToWT', 
+  #                                        'transmissivity', 'roadSaltCumulativePerSqKm'),
+  #                                      p7_attr_name_xwalk, 
+  #                                      c(ALL='#868b8e'),
+  #                                      legend_position = "none",
+  #                                      attribute_text_size = 9), 
+  #            format='file'),
   
   ###### Map of all qualified sites ######
   

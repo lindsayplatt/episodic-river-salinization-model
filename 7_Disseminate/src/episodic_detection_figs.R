@@ -19,7 +19,8 @@
 #' @returns a list of ggplots
 #' 
 create_episodic_plotlist <- function(ts_sc, sites_episodic, episodic_col, not_episodic_col,
-                                     winter_months = c(12,1,2,3), nrow=6, addNWISName = FALSE) {
+                                     winter_months = c(12,1,2,3), usenrow = NULL, 
+                                     addNWISName = FALSE) {
   
   unique_sites <- unique(ts_sc$site_no)
   
@@ -48,7 +49,7 @@ create_episodic_plotlist <- function(ts_sc, sites_episodic, episodic_col, not_ep
     mutate(site_no_ord = factor(site_no, levels = .$site_no, labels = .$facet_title)) %>% 
     group_by(site_no_ord) %>% 
     # Prepare each site to be shown in a specific group's set of facets
-    mutate(grp_num = ceiling(cur_group_id()/30)) %>% 
+    mutate(grp_num = ceiling(cur_group_id()/49)) %>% 
     ungroup()
   
   ts_sc_category <- ts_sc %>% 
@@ -69,16 +70,22 @@ create_episodic_plotlist <- function(ts_sc, sites_episodic, episodic_col, not_ep
   site_category <- site_category %>% split(.$grp_num)
   
   plot_episodic_facets <- function(ts_sc, ts_sc_info) {
+    
+    if(is.null(usenrow)){
+      usenrow = ceiling(nrow(ts_sc_info)/7)
+    }
+    
     ggplot(data = ts_sc) +
-      geom_path(aes(x = dateTime, y = SpecCond, color = winter_behavior, group=year), na.rm = TRUE) +
+      geom_path(aes(x = dateTime, y = SpecCond, color = winter_behavior, group=year), na.rm = TRUE, 
+                linewidth = 0.3) +
       scale_color_manual(values = c(`Winter date (episodic site)` = episodic_col, 
                                     `Winter date (not episodic site)` = not_episodic_col,
                                     `Non-winter date` = 'grey70')) +
-      facet_wrap(vars(site_no_ord), scales='free', nrow=nrow) +
+      facet_wrap(vars(site_no_ord), scales='free', nrow = usenrow) +
       ylab('Specific Conductance, µS/cm at 25°C') + 
       theme_bw(base_size = 9) +
       theme(#text = element_text(size=10), 
-            axis.text.x = element_text(size=8, angle=20, hjust=1),
+            axis.text.x = element_text(size = 8, angle = 0, hjust=1),
             axis.title.y = element_text(vjust = 1.5),
             axis.title.x = element_blank(),
             legend.title = element_blank(),
