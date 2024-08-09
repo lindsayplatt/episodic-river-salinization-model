@@ -102,8 +102,8 @@ compilationPlot <- function(out_file, rf_model_importance,
     mutate(attr_fact = attribute_as_factor(attribute, attribute_order, display_name_in_order))
   
   p_boxes <- ggplot(data_to_plot, aes(x = site_category_fact, y = attr_val)) +
-    geom_boxplot(aes(fill = site_category_fact)) + 
-    facet_wrap(vars(attr_fact), scales = 'free_y', nrow = 2) +
+    geom_boxplot(aes(fill = site_category_fact), linewidth = 0.3, outlier.size = 0.5) + 
+    facet_wrap(vars(attr_fact), scales = 'free_y', nrow = 1) +
     theme_bw(base_size = 9) +
     scale_y_continuous(labels = scales::comma) +
     scale_fill_manual(values = box_colors) +
@@ -114,27 +114,17 @@ compilationPlot <- function(out_file, rf_model_importance,
           axis.title.y = element_blank(), 
           axis.text.x = element_blank(),
           legend.title = element_blank(),
-          legend.position = 'right', 
+          legend.position = 'bottom', 
           strip.clip = "off",
+          legend.margin = ggplot2::margin(0,0,0,0),
           panel.spacing = unit(0.75, "lines"),
           plot.margin = unit(c(0.5,1,0.5,0.5), 'lines'))
   
-layout <- "
-AABBB
-AABBB
-CCCCC
-CCCCC
-"
-
-  # p = p_importance + p_pdp + p_boxes + 
-  #   plot_layout(design = layout) +
-  #   plot_annotation(tag_levels = 'a', tag_prefix = '(', tag_suffix = ')') & 
-  #   theme(plot.tag = element_text(size = 8)); p
- 
   top_row <- plot_grid(p_importance, p_pdp, labels = c('(a)', '(b)'), label_size =8,
                        rel_widths = c(0.9, 2))
-  p = plot_grid(top_row, p_boxes, labels = c('', '(c)'), label_size = 8, ncol = 1)
+  p = plot_grid(top_row, p_boxes, labels = c('', '(c)'), label_size = 8, ncol = 1, 
+                rel_heights = c(1,0.7))
   
-  ggsave(out_file, p, width = 6.5, height = 5, dpi = 500)
+  ggsave(out_file, p, width = 6.5, height = 4, dpi = 500)
   return(out_file)                        
 }

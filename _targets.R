@@ -27,6 +27,7 @@ tar_option_set(
     'randomForest',
     'Rarr', # Needed to download NWM streamflow; devtools::install_github(repo = 'grimbough/Rarr')
     'raster',
+    'rstatix', # Needed for wilcox_test between attributes
     'sbtools',
     'scico',
     'sf',

@@ -22,12 +22,12 @@ p7_targets <- list(
                   "subsurfaceContact", "gwRecharge", "pctOpenWater", "basinSlope", 
                   "pctForested", "pctWetland", "pctAgriculture", "pctDeveloped", 
                   "annualSnow", "winterAirTemp", "depthToWT", "transmissivity", 
-                  "areaCumulativeSqKm"),
+                  "areaCumulativeSqKm", "streamorder"),
     display_name = c("Median Flow (m3/s)", "Watershed Road Salt (kg/km2)", "Precip (mm/yr)", "Baseflow Index",
                      "Subsurface Contact (days)", "GW Recharge (mm/yr)", "Open Water (% area)", "Basin Slope (%)",
                      "Forested (% area)", "Wetland (% area)", "Agriculture (% area)", "Developed (% area)", 
                      "Snow (mm/yr)", "Winter Air Temp (°C)", "Depth to WT (m)", 
-                     "Transmissivity (m2/day)", "Watershed Area (km2)"))),
+                     "Transmissivity (m2/day)", "Watershed Area (km2)", "Stream Order"))),
   
   # Create a single dataset that shows only site episodic categorization
   tar_target(p7_site_categories, p5_site_attr %>% 
@@ -107,6 +107,19 @@ p7_targets <- list(
                                        c(Episodic=p7_color_episodic, 
                                          `Not episodic` = p7_color_not_episodic)), 
              format='file'),
+  
+  # Boxplots of attribute values by classification
+  tar_target(p7_attr_episodic_boxplotsALL_png, 
+             create_attribute_boxplots('7_Disseminate/out/attributes_boxes_episodicALL.png',
+                                       p5_site_attr_rf,
+                                       calculate_attr_importance(p5_rf_model_hypertuned) %>% 
+                                         filter(site_category == 'Episodic') %>% 
+                                         arrange(desc(importance)) %>% pull(attribute),
+                                       p7_attr_name_xwalk, 
+                                       c(Episodic=p7_color_episodic, 
+                                         `Not episodic` = p7_color_not_episodic)), 
+             format='file'),
+  
   
   # Compilation plot of above three figures
   tar_target(p7_rf_results_episodic_png, compilationPlot(
@@ -527,21 +540,21 @@ p7_targets <- list(
   
   ###### Boxplots of attributes for all sites combined ######
   
-  tar_target(p7_attr_all_boxplots_png, 
-             create_attribute_boxplots('7_Disseminate/out/attributes_boxes_all.png',
-                                       mutate(p5_site_attr_rf, site_category_fact = 'ALL'),
-                                       # Same order as the table
-                                       c('medianFlow', 'basinSlope', 'pctAgriculture',
-                                         'pctDeveloped', 'pctForested', 'pctOpenWater',
-                                         'pctWetland', 'annualPrecip', 'annualSnow',
-                                         'winterAirTemp', 'baseFlowInd', 'gwRecharge',
-                                         'subsurfaceContact', 'depthToWT', 
-                                         'transmissivity', 'roadSaltCumulativePerSqKm'),
-                                       p7_attr_name_xwalk, 
-                                       c(ALL='#868b8e'),
-                                       legend_position = "none",
-                                       attribute_text_size = 9), 
-             format='file'),
+  # tar_target(p7_attr_all_boxplots_png, 
+  #            create_attribute_boxplots('7_Disseminate/out/attributes_boxes_all.png',
+  #                                      mutate(p5_site_attr_rf, site_category_fact = 'ALL'),
+  #                                      # Same order as the table
+  #                                      c('medianFlow', 'basinSlope', 'pctAgriculture',
+  #                                        'pctDeveloped', 'pctForested', 'pctOpenWater',
+  #                                        'pctWetland', 'annualPrecip', 'annualSnow',
+  #                                        'winterAirTemp', 'baseFlowInd', 'gwRecharge',
+  #                                        'subsurfaceContact', 'depthToWT', 
+  #                                        'transmissivity', 'roadSaltCumulativePerSqKm'),
+  #                                      p7_attr_name_xwalk, 
+  #                                      c(ALL='#868b8e'),
+  #                                      legend_position = "none",
+  #                                      attribute_text_size = 9), 
+  #            format='file'),
   
   ###### Map of all qualified sites ######
   
