@@ -80,6 +80,7 @@ znorm <- function(ts){
 calculate_catchment_areas <- function(polys_sf, comid_upstream_tbl, comid_site_xwalk) {
   # Using area that is given already - I checked and they are very similar 
   # to calculating the area using `st_area()`.
+  
   catchment_area_tbl <- polys_sf %>% 
     st_drop_geometry() %>% 
     select(nhd_comid_upstream = nhd_comid, area_sqkm = areasqkm)
@@ -102,7 +103,7 @@ calculate_catchment_areas <- function(polys_sf, comid_upstream_tbl, comid_site_x
       select(site_no, attr_areaSqKm, attr_areaCumulativeSqKm, attr_areaRatio, numNACatchments)
   } else {
     comid_catchment_info_ready <- comid_catchment_info %>% 
-      select(nhd_comid, attr_areaSqKm, attr_areaCumulativeSqKm, attr_areaRatio, numNACatchments)
+      select(nhd_comid, attr_areaSqKm, attr_areaCumulativeSqKm, attr_areaRatio, numNACatchments) 
   }
   
   return(comid_catchment_info_ready)
@@ -162,20 +163,29 @@ average_road_salt_rasters <- function(road_salt_tifs) {
 #' 
 #' @param road_salt_rast a single raster object of road salt application rates
 #' @param polys_sf a spatial data frame with polygons. Needs to be an `sf` class.
+#' @param rasterTifs the file path for the raster input tifs. Only needed if road_salt_raster == NULL 
 #' 
 #' @returns a tibble with the columns `nhd_comid` and `road_salt_kgs` with the
 #' total road salt per COMID catchment polygon
 #' 
-aggregate_road_salt_per_poly <- function(road_salt_rast, polys_sf) {
+aggregate_road_salt_per_poly <- function(road_salt_rast, polys_sf, rasterTifs = NULL) {
   
+  if(is.null(road_salt_rast)) {
+    salt_per_poly = raster::stack(rasterTifs) %>% 
+      mean() %>% 
+      setNames('road_salt_avg') %>% 
+      raster::projectRaster(crs = st_crs(polys_sf)$input) %>%
+      exactextractr::exact_extract(polys_sf, 'sum')
+      
+  } else {
   # Reproject the road salt raster data
   road_salt_rast_proj <- raster::projectRaster(road_salt_rast, 
                                                crs = st_crs(polys_sf)$input)
-  
   # Now calculate the total amount of salt within each polygon. Note that for
   # this function, sum = "the sum of non-NA raster cell values, multiplied by 
   # the fraction of the cell that is covered by the polygon".
   salt_per_poly <- exactextractr::exact_extract(road_salt_rast_proj, polys_sf, 'sum')
+  }
   
   # Now add to a table for export
   road_salt_poly <- polys_sf %>% 
@@ -261,6 +271,10 @@ map_catchment_roadSalt_to_site <- function(road_salt_comid, basin_areas, comid_s
 #' function renaming step. You could add it, or leave it as-is. 
 #' 
 prepare_nhd_attributes <- function(nhd_attribute_table, comid_site_xwalk) {
+  if(is.list(nhd_attribute_table)) {
+    nhd_attribute_table = bind_rows(nhd_attribute_table)
+  }
+
   id_col <- ifelse(is.null(comid_site_xwalk), 'nhd_comid', 'site_no')
   
   nhd_attribute_table %>%

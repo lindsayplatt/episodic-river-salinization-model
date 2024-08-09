@@ -69,9 +69,9 @@ create_episodic_criteria_fig <- function(out_file, sites_sf, all_site_categories
                                       not_episodic_col, 'Not episodic sites', 
                                       point_title_subtitle_sizes = c(1.5, 10, 8))
   
-  # Combine the two maps so that they are vertical
-  p_maps <- cowplot::plot_grid(p_episodic, p_notepisodic, nrow=2, 
-                               labels=c("(a)", "(b)"), label_size = 10)
+  # # Combine the two maps so that they are vertical
+  # p_maps <- cowplot::plot_grid(p_episodic, p_notepisodic, nrow=2, 
+  #                              labels=c("(a)", "(b)"), label_size = 8)
     
   # Criteria of episodic vs not  
   p_criteria <- sites_category_criteria %>% 
@@ -82,18 +82,23 @@ create_episodic_criteria_fig <- function(out_file, sites_sf, all_site_categories
     scale_fill_manual(values = c(`Not episodic` = not_episodic_col, 
                                  Episodic = episodic_col),
                       name = NULL) +
-    theme_bw() +
+    theme_bw(base_size = 9) +
     theme(legend.position = 'none',
           panel.grid = element_blank(),
           axis.title.x = element_text(vjust = -2),
           axis.title.y = element_text(vjust = 2),
           plot.margin = unit(c(1.5,0.5,1,1), unit='line')) +
-    xlab('Non-Winter Median Peak SpC') +
-    ylab('Winter Median Peak SpC')
+    xlab('Non-Winter Mean Peak SpC') +
+    ylab('Winter Mean Peak SpC')
+  
+  # 1 column width
+  png(out_file, width = 8.7, height = 15, units='cm', res=500)
 
-  png(out_file, width = 6.5, height = 3.25, units='in', res=500)
-  print(cowplot::plot_grid(p_maps, p_criteria, nrow=1, labels=c("", "(c)"), 
-                           label_size = 10, rel_widths = c(0.35, 0.65)))
+  print(cowplot::plot_grid(p_episodic, p_notepisodic, p_criteria,
+                           ncol=1, labels=c("(a)", "(b)", "(c)"), 
+                           label_size = 8, rel_heights = c(1,1,1)))
+  # print(cowplot::plot_grid(p_maps, p_criteria, nrow=1, labels=c("", "(c)"), 
+  #                          label_size = 8, rel_widths = c(0.4, 0.6)))
   dev.off()
   
   return(out_file)

@@ -5,6 +5,7 @@ source('1_Download/src/nhdplus_fxns.R')
 source('1_Download/src/nwis_fxns.R')
 source('1_Download/src/retry_fxns.R')
 source('1_Download/src/nwm_fxns.R')
+source('1_Download/src/get_flowline_index_HD.R')
 
 p1_targets <- list(
   
@@ -20,7 +21,7 @@ p1_targets <- list(
   ###### NWIS DATA 0: Set download configs for streamflow (Q) & specific conductivity (SC) ######
   
   tar_target(p1_nwis_start_date, as.Date('1950-01-01')), 
-  tar_target(p1_nwis_end_date, as.Date('2023-12-31')), 
+  tar_target(p1_nwis_end_date, as.Date('2024-03-31')), 
   tar_target(p1_nwis_pcode_sc, '00095'), # NWIS specific conductance code
   tar_target(p1_nwis_pcode_q, '00060'), # NWIS streamflow code
   tar_target(p1_nwis_min_years, 3), # Minimum number of years required
@@ -65,8 +66,12 @@ p1_targets <- list(
              pattern = map(p1_nwis_sc_sites_qualified)),
   
   # Using the sites that also have qualified Q, filter the SC site list before querying
-  tar_target(p1_nwis_sc_sites_query, p1_nwis_sc_sites_qualified %>% 
-               filter(site_no %in% p1_nwis_q_sites_query$site_no),
+  tar_target(p1_nwis_sc_sites_query, p1_nwis_sc_sites_qualified, #%>% 
+             # Someone can uncomment this in the future but we are not
+             # currently using NWIS Q to filter the sites used in the 
+             # remainder of the analysis, though it would be easy to 
+             # uncomment this and do that.
+             #  filter(site_no %in% p1_nwis_q_sites_query$site_no),
              pattern = map(p1_nwis_sc_sites_qualified)),
   
   ###### NWIS DATA 5: Prepare to download all the SC data ###### 
@@ -297,7 +302,8 @@ p1_targets <- list(
   # we need to.
   tar_target(p1_nhdplus_flowlines_sf, 
              st_read(p1_nhdplus_gdb, layer = 'NHDFlowline_Network') %>% 
-               st_zm() %>% filter(AreaSqKM > 0)),
+             st_zm()), #filter(AreaSqKM > 0) !Don't filter out zeros 
+  
   # Load the national catchments layer as an sf object and rename `FEATUREID` to `nhd_comid`
   tar_target(p1_nhdplus_catchments_sf, 
              st_read(p1_nhdplus_gdb, layer = 'CatchmentSP') %>% 
@@ -311,9 +317,10 @@ p1_targets <- list(
   # And calculates the median per COMID before returning data
   # This took ~4 hrs to run 4 groups of ~100 COMIDs
   
-  tarchetypes::tar_group_size(p1_nwm_comids_grp, 
+  tarchetypes::tar_group_size(p1_nwm_comids_grp,
                                size = 100, # Set groups of 10 to map over NWM download
                                tibble(nhd_comid = p1_nhdplus_comids)),
   tar_target(p1_nwm_streamflow, download_NWMv2_streamflow(p1_nwm_comids_grp$nhd_comid),
              pattern = map(p1_nwm_comids_grp))
+  
 )

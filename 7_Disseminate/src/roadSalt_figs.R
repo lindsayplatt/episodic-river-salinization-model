@@ -69,7 +69,7 @@ create_roadSalt_boxplot <- function(out_file, site_attr_data, all_site_categorie
 create_roadSalt_site_map <- function(out_file, site_attr_data, sites_sf, states_to_include) {
   
   # Calculate the 25th, 75th, and max values in the road salt data
-  quants_these_sites <- quantile(site_attr_data$attr_roadSaltCumulativePerSqKm, probs = c(0.25, 0.75, 1))
+  quants_these_sites <- quantile(site_attr_data$attr_roadSaltCumulativePerSqKm, probs = c(0.25, 0.75, 1), na.rm = TRUE)
   quants_these_sites <- quants_these_sites * c(1,1,1.01) # Ensure that the maximum value is actually included
   
   sites_w_roadSalt <- sites_sf %>% 

@@ -83,8 +83,9 @@ p2_targets <- list(
   # Extract the catchments as polygons and summarize total salt per catchment
   # This includes any catchments that will only be used for upstream calculations
   tar_target(p2_nhdplus_catchment_sf, extract_nhdplus_geopackage_layer(p1_nhdplus_catchments_gpkg)),
-  tar_target(p2_nhdplus_catchment_salt, aggregate_road_salt_per_poly(road_salt_rast = p2_road_salt_rast, 
-                                                                     polys_sf = p2_nhdplus_catchment_sf)),
+  tar_target(p2_nhdplus_catchment_salt, aggregate_road_salt_per_poly(road_salt_rast = NULL, 
+                                                                     polys_sf = p2_nhdplus_catchment_sf,
+                                                                    rasterTifs = p1_sb_road_salt_tif)),
   
   # Before summarizing the rest of the data below, the NHD COMID data for what 
   # is included in the COMID to site crosswalk and the upstream COMIDs was 
@@ -134,6 +135,9 @@ p2_targets <- list(
   ###### ATTR DATA 5: Combine all static attributes into one table ######
   
   tar_target(p2_attr_all, combine_static_attributes(joinby = 'site_no',
+                                                    # Start with a tibble of all the sites we want 
+                                                    # attributes for and join other tables into that.
+                                                    tibble(site_no = p3_ts_sc_temporal_qualified_sites),
                                                     p2_attr_flow_nwm,
                                                     p2_streamorder,
                                                     p2_attr_basinArea %>% select(site_no, attr_areaCumulativeSqKm),

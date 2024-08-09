@@ -72,7 +72,7 @@ identify_site_comids <- function(sites_sf) {
 #' 
 safely_get_flowline_index <- function(site_sf, max_radius = 0.02) {
   comid_out <- suppressMessages(
-    tryCatch(get_flowline_index(points = site_sf, 
+    tryCatch(get_flowline_index_HD(points = site_sf, 
                                 flines = "download_nhdplusv2") %>% 
                mutate(with_retry = FALSE),
              # If it fails, it returns a weird error about st_transform() but the
@@ -81,7 +81,11 @@ safely_get_flowline_index <- function(site_sf, max_radius = 0.02) {
              # Error in UseMethod("st_transform") : 
              #  no applicable method for 'st_transform' applied to an object of class "list"
              warning = function(w) {
-               if(grepl('No nhd features found', w)) {
+               if(grepl('st_buffer does not correctly', w)) {
+                 get_flowline_index(points = site_sf, 
+                                    flines = "download_nhdplusv2") %>% 
+                   mutate(with_retry = FALSE)
+               } else if(grepl('No nhd features found', w)) {
                  # If it doesn't work, try again with 0.05 degrees radius
                  tryCatch(get_flowline_index(
                    points = site_sf, 
@@ -213,7 +217,7 @@ download_nhdplus_catchments <- function(out_file, comids) {
                    return_data = FALSE, 
                    overwrite = TRUE)
   }, error = function(e) {
-    if(grepl('subscript out of bounds', e$message)) {
+    if(grepl('subscript out of bounds', e)) {
       # If this error happens, try downloading in two separate groups
       # This method is here to split if it needs to but groups of ~600 
       # COMIDs seem to be small enough to get the whole country without
@@ -221,6 +225,7 @@ download_nhdplus_catchments <- function(out_file, comids) {
       # Something with the filenames I think? When I can back to troubleshoot,
       # it was just building without needing to end this part. Committing
       # anyways so we have this if we need it in the future.
+      print('splitting comids')
       grp_n <- ceiling(length(comids)/2)
       out_file_split <- c(gsub('.gpkg', '-1.gpkg', out_file),
                           gsub('.gpkg', '-2.gpkg', out_file))
@@ -231,25 +236,43 @@ download_nhdplus_catchments <- function(out_file, comids) {
                      return_data = FALSE, 
                      overwrite = TRUE)
       subset_nhdplus(comids = as.integer(comids[(grp_n+1):length(comids)]),
-                     output_file = out_file_split[1],
+                     output_file = out_file_split[2],
                      nhdplus_data = "download", 
                      flowline_only = FALSE,
                      return_data = FALSE, 
                      overwrite = TRUE)
+      
+      # Merge catchment files
+      read1 = st_read(out_file_split[1], layer = 'catchmentSP')
+      read2 = st_read(out_file_split[2], layer = 'catchmentSP')
+      st_write(bind_rows(read1,read2), out_file, layer = 'CatchmentSP', append=FALSE) 
+      
+      # Merge flowline files
+      read1 = st_read(out_file_split[1], layer = 'NHDFlowline_Network') %>% 
+        mutate(lakefract = as.numeric(lakefract), 
+               surfarea = as.numeric(surfarea), 
+               rareahload = as.numeric(rareahload))
+      read2 = st_read(out_file_split[2], layer = 'NHDFlowline_Network') %>% 
+        mutate(lakefract = as.numeric(lakefract), 
+               surfarea = as.numeric(surfarea), 
+               rareahload = as.numeric(rareahload))
+      st_write(bind_rows(read1,read2), out_file, layer = 'NHDFlowline_Network', append=FALSE) 
+      
       # Replace `out_file` with new vector of files to return the things created
-      out_file <- out_file_split
-      warning(sprintf('Caught error and split into multiple download groups ... %s', e$message))
-    } else if(grepl('st_cast for MULTIGEOMETRYCOLLECTION not supported', e$message) |
-       grepl('nrow(x) == length(value) is not TRUE', e$message, fixed=T) |
-       grepl('Loop 0 is not valid: Edge 11 crosses edge 13', e$message) |
-       grepl('arguments have different crs', e$message)) {
-      warning(sprintf('Caught error but could continue ... %s', e$message))
+      # out_file <- out_file_split
+      warning(sprintf('Caught error and split into multiple download groups ... %s', e))
+      return(out_file)
+    } else if(grepl('st_cast for MULTIGEOMETRYCOLLECTION not supported', e) |
+       grepl('nrow(x) == length(value) is not TRUE', e, fixed=T) |
+       grepl('Loop 0 is not valid: Edge 11 crosses edge 13', e) |
+       grepl('arguments have different crs', e)) {
+      warning(sprintf('Caught error but could continue ... %s', e))
       return(out_file)
     } else {
-      stop(e$message)
+      stop(e)
     }
   }, warning = function(w) {
-    warning(sprintf('Caught error but could continue ... %s', w$message))
+    warning(sprintf('Caught error but could continue ... %s', w))
   })
   
   return(out_file)
