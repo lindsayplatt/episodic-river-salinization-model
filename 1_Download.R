@@ -5,6 +5,7 @@ source('1_Download/src/nhdplus_fxns.R')
 source('1_Download/src/nwis_fxns.R')
 source('1_Download/src/retry_fxns.R')
 source('1_Download/src/nwm_fxns.R')
+source('1_Download/src/get_flowline_index_HD.R')
 
 p1_targets <- list(
   

@@ -72,7 +72,7 @@ identify_site_comids <- function(sites_sf) {
 #' 
 safely_get_flowline_index <- function(site_sf, max_radius = 0.02) {
   comid_out <- suppressMessages(
-    tryCatch(get_flowline_index(points = site_sf, 
+    tryCatch(get_flowline_index_HD(points = site_sf, 
                                 flines = "download_nhdplusv2") %>% 
                mutate(with_retry = FALSE),
              # If it fails, it returns a weird error about st_transform() but the
