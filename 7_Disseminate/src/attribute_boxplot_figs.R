@@ -50,7 +50,7 @@ create_attribute_boxplots <- function(out_file, site_attr_data, attribute_order,
     filter(!attribute %in% c('medianFlow')) %>% 
     group_by(attribute, attr_fact) %>% 
     # do(w = wilcox.test(attr_val ~ site_category_fact, data=., paired=FALSE)) %>%
-    do(w = wilcox_test(attr_val ~ site_category_fact, data=., paired=FALSE,  p.adjust.method = 'BH')) %>%
+    do(w = wilcox_test(attr_val ~ site_category_fact, data=., paired=FALSE,  p.adjust.method = 'bonferroni')) %>%
     summarise(attribute, attr_fact, Wilcox = w$p) %>% 
     mutate(sig = if_else(Wilcox < 0.05, '*',''))
   
