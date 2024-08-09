@@ -196,11 +196,20 @@ p7_targets <- list(
       mutate(predLengthPer = 100*predLength/orderLength) %>% 
       arrange(pred_fct, StreamOrde, desc(predLengthPer))
     
+    states_with_sites <- dataRetrieval::readNWISsite(p3_static_attributes$site_no) %>% 
+      pull(state_cd) %>% 
+      unique() %>% 
+      dataRetrieval::stateCdLookup(outputType = 'postal')
+    states_without_sites <- p1_conus_state_cds[!p1_conus_state_cds %in% states_with_sites]
+    
     # Output values for manuscript
     sink(file_out)
       cat("Total Episodic sites/Total sites\n")
       print(length(p4_episodic_sites))
       print(nrow(p3_static_attributes))
+      cat("\n")
+      cat("States missing USGS gage sites")
+      print(states_without_sites)
       cat("\n")
       cat("Model Accurary")
       print(p5_rf_accuracy)
