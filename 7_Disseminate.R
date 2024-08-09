@@ -226,10 +226,11 @@ p7_targets <- list(
     #   ggplot() +
     #   geom_point(aes(x = attr_streamorder, y = medianSpc))
     
-    sites10 = nrow(p4_ts_sc_norm %>% group_by(site_no) %>% 
+    sites10 = p4_ts_sc_norm %>% group_by(site_no) %>% 
       summarise(n = n()) %>% 
-      filter(n >= 365*10))
-      
+      filter(n >= 365*10)
+    sites10_episodic <- sites10 %>% filter(site_no %in% p4_episodic_sites)
+    
     episodicN = p3_static_attributes %>% select(site_no, attr_streamorder) %>% 
       filter(site_no %in% p4_episodic_sites) %>% 
       group_by(attr_streamorder) %>% 
@@ -249,8 +250,10 @@ p7_targets <- list(
       print(mediandays)
       cat("\n")
       cat("Sites over 10 years (n, %)\n")
-      print(sites10)
-      print(sites10/nrow(p3_static_attributes))
+      print(nrow(sites10))
+      print(nrow(sites10)/nrow(p3_static_attributes))
+      cat("\n")
+      cat(sprintf("Episodic sites over 10 years: %s", sites10_episodic))
       cat("\n")
       cat("Number of sites by streamorder\n")
       print(p3_static_attributes %>% group_by(attr_streamorder) %>% tally())
@@ -385,6 +388,9 @@ p7_targets <- list(
       cat("\n")
       cat(sprintf("Range of median flow values from National Water Model: %s", 
                   paste(median_Q_range, collapse = ' to ')))
+      cat("\n")
+      cat("\n")
+      cat(sprintf('Number of COMIDs used in the predict step: %s', length(p6_predicted_comid)))
       cat("\n")
     sink()
     return(file_out)
