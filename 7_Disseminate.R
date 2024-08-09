@@ -253,7 +253,7 @@ p7_targets <- list(
       print(nrow(sites10))
       print(nrow(sites10)/nrow(p3_static_attributes))
       cat("\n")
-      cat(sprintf("Episodic sites over 10 years: %s", sites10_episodic))
+      cat(sprintf("Episodic sites over 10 years: %s", length(sites10_episodic)))
       cat("\n")
       cat("Number of sites by streamorder\n")
       print(p3_static_attributes %>% group_by(attr_streamorder) %>% tally())
