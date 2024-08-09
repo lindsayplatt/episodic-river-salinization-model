@@ -13,17 +13,23 @@ p3_targets <- list(
   tar_target(p3_nhdplus_flowlines_sf, p2_nhdplus_flowlines_ALL_sf %>% 
                filter(!nhd_comid %in% p3_nhd_comid_zero_areas)),
   tar_target(p3_nwis_site_nhd_comid_xwalk, p1_nwis_site_nhd_comid_ALL_xwalk %>% 
-               filter(!nhd_comid %in% p3_nhd_comid_zero_areas)),
+               filter(!is.na(nhd_comid)) %>% 
+               filter(!nhd_comid %in% p3_nhd_comid_zero_areas) %>% 
+               filter(site_no %in% p3_all_downloaded_sites)),
   tar_target(p3_nhdplus_comids_upstream, p1_nhdplus_comids_upstream_ALL %>% 
                filter(!nhd_comid %in% p3_nhd_comid_zero_areas,
                       !nhd_comid_upstream %in% p3_nhd_comid_zero_areas)),
   
   # Identify any sites who correspond to a COMID with no drainage area to remove
   tar_target(p3_nwis_site_with_zero_nhd_area, p1_nwis_site_nhd_comid_ALL_xwalk %>% 
+               filter(!is.na(nhd_comid)) %>% 
                filter(nhd_comid %in% p3_nhd_comid_zero_areas) %>% 
                pull(site_no)),
   
   ##### TS FILTERING: Filter sites and data as part of processing in `2_Prepare` #####
+  
+  tar_target(p3_all_downloaded_sites, read_feather(p2_ts_sc_dv_feather) %>% 
+               pull(site_no) %>% unique()),
   
   ##### Step 1: identify sites that meet (or don't) temporal criteria #####
   
@@ -65,7 +71,7 @@ p3_targets <- list(
   ##### ATTR FILTERING #####
   
   # Remove sites from all data if any of the attributes are missing
-  tar_target(p3_attr_missing_sites, identify_missing_attr_sites(p2_attr_nhd)),
+  tar_target(p3_attr_missing_sites, identify_missing_attr_sites(p2_attr_all)),
   
   # Filter the final static attribute table to only those sites that qualified.
   tar_target(p3_static_attributes, 

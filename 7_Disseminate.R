@@ -226,10 +226,11 @@ p7_targets <- list(
     #   ggplot() +
     #   geom_point(aes(x = attr_streamorder, y = medianSpc))
     
-    sites10 = nrow(p4_ts_sc_norm %>% group_by(site_no) %>% 
+    sites10 = p4_ts_sc_norm %>% group_by(site_no) %>% 
       summarise(n = n()) %>% 
-      filter(n >= 365*10))
-      
+      filter(n >= 365*10)
+    sites10_episodic <- sites10 %>% filter(site_no %in% p4_episodic_sites)
+    
     episodicN = p3_static_attributes %>% select(site_no, attr_streamorder) %>% 
       filter(site_no %in% p4_episodic_sites) %>% 
       group_by(attr_streamorder) %>% 
@@ -249,8 +250,10 @@ p7_targets <- list(
       print(mediandays)
       cat("\n")
       cat("Sites over 10 years (n, %)\n")
-      print(sites10)
-      print(sites10/nrow(p3_static_attributes))
+      print(nrow(sites10))
+      print(nrow(sites10)/nrow(p3_static_attributes))
+      cat("\n")
+      cat(sprintf("Episodic sites over 10 years: %s", sites10_episodic))
       cat("\n")
       cat("Number of sites by streamorder\n")
       print(p3_static_attributes %>% group_by(attr_streamorder) %>% tally())
@@ -310,6 +313,88 @@ p7_targets <- list(
     sink()
     return(file_out)
   }, format='file'),
+  
+  tar_target(p7_stats_methods, {
+    file_out <- '7_Disseminate/out/outputStatsMethods.txt'
+    
+    final_sites <- p3_static_attributes$site_no
+    
+    states_with_sites <- dataRetrieval::readNWISsite(final_sites) %>% 
+      pull(state_cd) %>% 
+      unique() %>% 
+      dataRetrieval::stateCdLookup(outputType = 'postal')
+    states_without_sites <- p1_conus_state_cds[!p1_conus_state_cds %in% states_with_sites]
+    
+    sites_missing_nhd_comid_match <- p1_nwis_site_nhd_comid_ALL_xwalk %>% 
+      filter(site_no %in% p3_all_downloaded_sites) %>% 
+      filter(is.na(nhd_comid)) %>% pull(site_no)
+    
+    n_downloaded <- p3_all_downloaded_sites %>% length()
+    n_after_temporal <- length(p3_ts_sc_temporal_qualified_sites)
+    n_tidal <- length(p1_nwis_sc_sites_tidal)
+    n_highSpC <- length(p3_ts_sc_highSC_sites)
+    n_after_tidal_highSpC <- n_after_temporal - length(unique(c(p1_nwis_sc_sites_tidal, p3_ts_sc_highSC_sites)))
+    n_missing_static <- length(p3_attr_missing_sites)
+    n_missing_area <- length(p3_nwis_site_with_zero_nhd_area)
+    n_missing_comid <- length(sites_missing_nhd_comid_match)
+    n_after_nhd_filter <- n_after_tidal_highSpC - length(unique(c(p3_attr_missing_sites, p3_nwis_site_with_zero_nhd_area, 
+                                                                  sites_missing_nhd_comid_match)))
+    
+    site_counts <- tibble(
+      step = c('Download', 'After temporal filter', 'After tidal/highSC filter', 'After filtering for NHD+'),
+      n = c(n_downloaded, n_after_temporal, n_after_tidal_highSpC, n_after_nhd_filter)
+    )
+    
+    sites_requeried_nhd <- p1_nwis_site_nhd_comid_ALL_xwalk %>% 
+      filter(site_no %in% final_sites) %>% 
+      filter(with_retry) %>% 
+      nrow()
+    
+    overlapping_comids <- p1_nwis_site_nhd_comid_ALL_xwalk %>% 
+      filter(site_no %in% final_sites) %>% 
+      group_by(nhd_comid) %>% 
+      tally() %>% 
+      filter(n > 1) %>% 
+      pull(nhd_comid)
+    sites_with_overlapping_comids <- p1_nwis_site_nhd_comid_ALL_xwalk %>% 
+      filter(site_no %in% final_sites) %>% 
+      filter(nhd_comid %in% overlapping_comids) %>% 
+      nrow()
+    
+    median_Q_range <- range(p3_static_attributes$attr_medianFlow)
+    
+    # Output values for manuscript methods section
+    sink(file_out)
+      cat("States missing USGS gage sites")
+      print(states_without_sites)
+      cat("\n")
+      cat("Site counts through filtering")
+      print(site_counts)
+      cat("\n")
+      cat("Somtimes the tidal and high SpC sites overlap.")
+      cat("\n")
+      print(sprintf('Tidal sites: %s', paste(p1_nwis_sc_sites_tidal, collapse = ", ")))
+      print(sprintf('High SpC sites: %s', paste(p3_ts_sc_highSC_sites, collapse = ", ")))
+      cat("\n")
+      cat("Somtimes the NHD+ missing attributes and zero area overlap.")
+      cat("\n")
+      print(sprintf('Missing COMID sites: %s', paste(sites_missing_nhd_comid_match, collapse = ", ")))
+      print(sprintf('Missing attributes sites: %s', paste(p3_attr_missing_sites, collapse = ", ")))
+      print(sprintf('Missing catchment area sites: %s', paste(p3_nwis_site_with_zero_nhd_area, collapse = ", ")))
+      cat("\n")
+      cat(sprintf("Num. sites that were requeried with a larger search radius for COMID: %s", sites_requeried_nhd))
+      cat("\n")
+      cat(sprintf("Num. sites that share a COMID with at least one other site: %s", sites_with_overlapping_comids))
+      cat("\n")
+      cat(sprintf("Range of median flow values from National Water Model: %s", 
+                  paste(median_Q_range, collapse = ' to ')))
+      cat("\n")
+      cat("\n")
+      cat(sprintf('Number of COMIDs used in the predict step: %s', length(p6_predicted_comid)))
+      cat("\n")
+    sink()
+    return(file_out)
+  }),
   
   ############################ Full Map ############################
   tar_target(p7_predict_episodic_mapAll_png, {
