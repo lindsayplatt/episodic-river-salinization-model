@@ -229,7 +229,7 @@ p7_targets <- list(
     sites10 = p4_ts_sc_norm %>% group_by(site_no) %>% 
       summarise(n = n()) %>% 
       filter(n >= 365*10)
-    sites10_episodic <- sites10 %>% filter(site_no %in% p4_episodic_sites)
+    sites10_episodic <- sites10 %>% filter(site_no %in% p4_episodic_sites) %>% pull(site_no)
     
     episodicN = p3_static_attributes %>% select(site_no, attr_streamorder) %>% 
       filter(site_no %in% p4_episodic_sites) %>% 
@@ -253,7 +253,7 @@ p7_targets <- list(
       print(nrow(sites10))
       print(nrow(sites10)/nrow(p3_static_attributes))
       cat("\n")
-      cat(sprintf("Episodic sites over 10 years: %s", sites10_episodic))
+      cat(sprintf("Episodic sites over 10 years: %s", length(sites10_episodic)))
       cat("\n")
       cat("Number of sites by streamorder\n")
       print(p3_static_attributes %>% group_by(attr_streamorder) %>% tally())
