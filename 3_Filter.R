@@ -71,7 +71,7 @@ p3_targets <- list(
   ##### ATTR FILTERING #####
   
   # Remove sites from all data if any of the attributes are missing
-  tar_target(p3_attr_missing_sites, identify_missing_attr_sites(p2_attr_nhd)),
+  tar_target(p3_attr_missing_sites, identify_missing_attr_sites(p2_attr_all)),
   
   # Filter the final static attribute table to only those sites that qualified.
   tar_target(p3_static_attributes, 
